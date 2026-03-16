@@ -21,7 +21,11 @@ class Conf_Manager {
 	 */
 	public function run() {
 		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
-		// Add other core actions/hooks here as the plugin grows
+		
+		if ( is_admin() ) {
+			require_once CONF_MANAGER_PATH . 'includes/class-conf-admin.php';
+			new Conf_Admin();
+		}
 	}
 
 	/**
