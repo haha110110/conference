@@ -43,6 +43,45 @@ $attendees = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $table_attendees
 			</div>
 		</div>
 
+		<?php if ( $status !== 'paid' ) : ?>
+			<div class="conf-card" style="border: 1px solid #e2e8f0; margin-bottom: 30px;">
+				<h3><?php esc_html_e( 'Change Payment Method', 'conf-manager' ); ?></h3>
+				<form id="conf-update-payment-form">
+					<input type="hidden" name="order_id" value="<?php echo esc_attr( $order_id ); ?>">
+					<div class="ticket-grid">
+						<label class="ticket-card" style="display: block; cursor: pointer;">
+							<input type="radio" name="payment_method" value="wechat" <?php checked( $payment_method, 'wechat' ); ?> style="display: none;">
+							<div style="font-size: 24px; margin-bottom: 5px;">🟢</div>
+							<h4 style="margin: 5px 0;"><?php esc_html_e( 'WeChat Pay', 'conf-manager' ); ?></h4>
+						</label>
+
+						<label class="ticket-card" style="display: block; cursor: pointer;">
+							<input type="radio" name="payment_method" value="bank" <?php checked( $payment_method, 'bank' ); ?> style="display: none;">
+							<div style="font-size: 24px; margin-bottom: 5px;">🏦</div>
+							<h4 style="margin: 5px 0;"><?php esc_html_e( 'Bank Transfer', 'conf-manager' ); ?></h4>
+						</label>
+
+						<label class="ticket-card" style="display: block; cursor: pointer;">
+							<input type="radio" name="payment_method" value="onsite" <?php checked( $payment_method, 'onsite' ); ?> style="display: none;">
+							<div style="font-size: 24px; margin-bottom: 5px;">💵</div>
+							<h4 style="margin: 5px 0;"><?php esc_html_e( 'Pay on Site', 'conf-manager' ); ?></h4>
+						</label>
+					</div>
+
+					<div id="bank-transfer-instructions" style="<?php echo $payment_method === 'bank' ? '' : 'display: none;'; ?> margin-top: 20px; padding: 15px; border-radius: 8px; background: #fffbeb; border: 1px solid #fde68a;">
+						<p style="font-size: 13px;"><?php echo wp_kses_post( sprintf( __( 'Please transfer to:<br><strong>Name:</strong> %s<br><strong>Account:</strong> %s<br><strong>Bank:</strong> %s', 'conf-manager' ), get_option( 'conf_bank_acc_name' ), get_option( 'conf_bank_acc_no' ), get_option( 'conf_bank_name' ) ) ); ?></p>
+						<div class="conf-form-group" style="margin-top: 10px;">
+							<label style="font-size: 13px;"><?php esc_html_e( 'Update Receipt Image', 'conf-manager' ); ?></label>
+							<input type="file" name="bank_receipt" class="conf-input" accept="image/*">
+						</div>
+					</div>
+
+					<div id="update-payment-message" style="margin-top: 15px;"></div>
+					<button type="submit" class="conf-btn conf-btn-primary" style="margin-top: 15px; width: 100%;"><?php esc_html_e( 'Update Payment Method', 'conf-manager' ); ?></button>
+				</form>
+			</div>
+		<?php endif; ?>
+
 		<h3><?php esc_html_e( 'Attendees & Check-in Codes', 'conf-manager' ); ?></h3>
 		<p style="color: #64748b; margin-bottom: 24px;"><?php esc_html_e( 'Please show the QR code or 6-digit code to staff at the venue.', 'conf-manager' ); ?></p>
 

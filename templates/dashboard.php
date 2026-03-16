@@ -18,6 +18,10 @@ $orders = get_posts( $args );
 ?>
 
 <div id="conf-registration-container">
+	<div class="lang-switcher" style="text-align: right; margin-bottom: 10px;">
+		<a href="<?php echo add_query_arg( 'conf_lang', 'zh_CN' ); ?>">中文</a> | 
+		<a href="<?php echo add_query_arg( 'conf_lang', 'en_US' ); ?>">English</a>
+	</div>
 	<div class="conf-card">
 		<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px;">
 			<div>

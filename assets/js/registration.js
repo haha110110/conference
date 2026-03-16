@@ -113,15 +113,62 @@ jQuery(document).ready(function($) {
     }
 
     // Payment Method Toggle
-    $('input[name="payment_method"]').on('change', function() {
+    $(document).on('change', 'input[name="payment_method"]', function() {
+        const formId = $(this).closest('form').attr('id');
         if ($(this).val() === 'bank') {
-            $('#bank-transfer-instructions').slideDown();
+            if (formId === 'conf-registration-form') {
+                $('#bank-transfer-instructions').slideDown();
+            } else {
+                $(this).closest('form').find('#bank-transfer-instructions').slideDown();
+            }
         } else {
-            $('#bank-transfer-instructions').slideUp();
+            if (formId === 'conf-registration-form') {
+                $('#bank-transfer-instructions').slideUp();
+            } else {
+                $(this).closest('form').find('#bank-transfer-instructions').slideUp();
+            }
         }
     });
 
-    // Form Submission
+    // Update Payment Method Form (Order Details)
+    $('#conf-update-payment-form').on('submit', function(e) {
+        e.preventDefault();
+        const $form = $(this);
+        const $submitBtn = $form.find('button[type="submit"]');
+        const $msgContainer = $('#update-payment-message');
+
+        $submitBtn.prop('disabled', true).text('Updating...');
+        $msgContainer.html('');
+
+        const formData = new FormData(this);
+        formData.append('action', 'conf_update_payment_method');
+        formData.append('nonce', conf_vars.nonce);
+
+        $.ajax({
+            url: conf_vars.ajax_url,
+            type: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function(response) {
+                if (response.success) {
+                    $msgContainer.html('<div style="color: #166534; background: #dcfce7; padding: 15px; border-radius: 8px;">' + response.data.message + '</div>');
+                    setTimeout(() => {
+                        location.reload();
+                    }, 1000);
+                } else {
+                    $msgContainer.html('<div style="color: #991b1b; background: #fee2e2; padding: 15px; border-radius: 8px;">' + response.data.message + '</div>');
+                    $submitBtn.prop('disabled', false).text('Update Payment Method');
+                }
+            },
+            error: function() {
+                $msgContainer.html('<div style="color: #991b1b; background: #fee2e2; padding: 15px; border-radius: 8px;">Something went wrong.</div>');
+                $submitBtn.prop('disabled', false).text('Update Payment Method');
+            }
+        });
+    });
+
+    // Form Submission (Registration)
     $('#conf-registration-form').on('submit', function(e) {
         e.preventDefault();
         const $form = $(this);

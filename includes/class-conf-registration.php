@@ -22,6 +22,49 @@ class Conf_Registration {
 
 		add_action( 'wp_ajax_conf_submit_registration', array( $this, 'handle_registration' ) );
 		add_action( 'wp_ajax_nopriv_conf_submit_registration', array( $this, 'handle_registration' ) );
+
+		add_action( 'wp_ajax_conf_update_payment_method', array( $this, 'handle_update_payment_method' ) );
+	}
+
+	/**
+	 * Handle update payment method
+	 */
+	public function handle_update_payment_method() {
+		check_ajax_referer( 'conf_registration_nonce', 'nonce' );
+
+		if ( ! is_user_logged_in() ) {
+			wp_send_json_error( array( 'message' => __( 'You must be logged in.', 'conf-manager' ) ) );
+		}
+
+		$order_id = intval( $_POST['order_id'] );
+		$payment_method = sanitize_text_field( $_POST['payment_method'] );
+		$order = get_post( $order_id );
+
+		if ( ! $order || $order->post_type !== 'conf_order' || $order->post_author != get_current_user_id() ) {
+			wp_send_json_error( array( 'message' => __( 'Order not found.', 'conf-manager' ) ) );
+		}
+
+		if ( get_post_meta( $order_id, 'conf_status', true ) === 'paid' ) {
+			wp_send_json_error( array( 'message' => __( 'This order is already paid.', 'conf-manager' ) ) );
+		}
+
+		update_post_meta( $order_id, 'conf_payment_method', $payment_method );
+
+		// Handle bank receipt upload
+		if ( $payment_method === 'bank' && ! empty( $_FILES['bank_receipt']['name'] ) ) {
+			if ( ! function_exists( 'wp_handle_upload' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/file.php';
+			}
+			$uploaded_file = wp_handle_upload( $_FILES['bank_receipt'], array( 'test_form' => false ) );
+			if ( isset( $uploaded_file['url'] ) ) {
+				update_post_meta( $order_id, 'conf_bank_receipt_url', $uploaded_file['url'] );
+			}
+		}
+
+		// Re-send received email
+		Conf_Manager::send_email( $order_id, 'received' );
+
+		wp_send_json_success( array( 'message' => __( 'Payment method updated successfully!', 'conf-manager' ) ) );
 	}
 
 	/**
