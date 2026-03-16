@@ -120,8 +120,10 @@ class Conf_Registration {
 			wp_send_json_error( array( 'message' => $order_id->get_error_message() ) );
 		}
 
+		// Store order meta
 		update_post_meta( $order_id, 'conf_payment_method', $payment_method );
 		update_post_meta( $order_id, 'conf_status', ( $payment_method === 'onsite' ? 'unpaid' : 'pending' ) );
+		update_post_meta( $order_id, 'conf_lang', get_locale() );
 
 		// Handle bank receipt upload
 		if ( $payment_method === 'bank' && ! empty( $_FILES['bank_receipt']['name'] ) ) {

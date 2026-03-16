@@ -11,6 +11,10 @@ $current_user = wp_get_current_user();
 ?>
 
 <div id="conf-registration-container">
+	<div class="lang-switcher" style="text-align: right; margin-bottom: 10px;">
+		<a href="<?php echo add_query_arg( 'conf_lang', 'zh_CN' ); ?>">中文</a> | 
+		<a href="<?php echo add_query_arg( 'conf_lang', 'en_US' ); ?>">English</a>
+	</div>
 	<form id="conf-registration-form">
 		<h2><?php esc_html_e( 'Conference Registration', 'conf-manager' ); ?></h2>
 		

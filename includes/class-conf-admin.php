@@ -159,6 +159,9 @@ class Conf_Admin {
 		register_setting( 'conf_settings_group', 'conf_ticket_name' );
 		register_setting( 'conf_settings_group', 'conf_ticket_price' );
 
+		// Language Settings
+		register_setting( 'conf_settings_group', 'conf_default_language' );
+
 		// Bank Transfer Settings
 		register_setting( 'conf_settings_group', 'conf_bank_acc_name' );
 		register_setting( 'conf_settings_group', 'conf_bank_acc_no' );

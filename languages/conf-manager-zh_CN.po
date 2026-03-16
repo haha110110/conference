@@ -1,0 +1,136 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Conference Manager 1.0.0\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2026-03-16 10:00+0800\n"
+"PO-Revision-Date: 2026-03-16 10:05+0800\n"
+"Last-Translator: Gemini CLI\n"
+"Language-Team: Chinese (Simplified)\n"
+"Language: zh_CN\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Poedit 3.0\n"
+
+#: conference-manager.php:32
+msgid "Conference Staff"
+msgstr "会议工作人员"
+
+#: includes/class-conf-admin.php:23
+msgid "Conference Manager"
+msgstr "会议管理"
+
+#: includes/class-conf-admin.php:24
+msgid "Conference"
+msgstr "会议"
+
+#: includes/class-conf-admin.php:33
+#: includes/class-conf-admin.php:34
+msgid "Settings"
+msgstr "设置"
+
+#: includes/class-conf-admin.php:42
+#: includes/class-conf-admin.php:43
+msgid "Manual Approval"
+msgstr "人工审核"
+
+#: includes/class-conf-admin.php:51
+#: includes/class-conf-admin.php:52
+msgid "Refunds"
+msgstr "退款管理"
+
+#: includes/class-conf-admin.php:61
+msgid "Conference Dashboard"
+msgstr "会议控制台"
+
+#: includes/class-conf-admin.php:83
+msgid "Conference Settings"
+msgstr "会议设置"
+
+#: includes/class-conf-admin.php:91
+msgid "WeChat Pay Settings"
+msgstr "微信支付设置"
+
+#: includes/class-conf-admin.php:114
+msgid "Ticket Configuration"
+msgstr "门票配置"
+
+#: includes/class-conf-admin.php:128
+msgid "Bank Transfer Details"
+msgstr "银行汇款详情"
+
+#: includes/class-conf-registration.php:33
+msgid "Conference Information"
+msgstr "参会信息"
+
+#: includes/class-conf-registration.php:36
+#: templates/registration-form.php:32
+msgid "Company"
+msgstr "单位"
+
+#: includes/class-conf-registration.php:42
+#: templates/registration-form.php:36
+msgid "Job Title"
+msgstr "职位"
+
+#: includes/class-conf-registration.php:48
+#: templates/registration-form.php:28
+msgid "Phone"
+msgstr "手机号"
+
+#: includes/class-conf-registration.php:104
+#: templates/registration-form.php:16
+msgid "Conference Registration"
+msgstr "会议注册"
+
+#: templates/registration-form.php:41
+msgid "Add Another Attendee"
+msgstr "增加参会人员"
+
+#: templates/registration-form.php:45
+msgid "Payment Method"
+msgstr "支付方式"
+
+#: templates/registration-form.php:48
+msgid "WeChat Pay (Online)"
+msgstr "微信支付 (在线)"
+
+#: templates/registration-form.php:51
+msgid "Bank Transfer"
+msgstr "银行汇款"
+
+#: templates/registration-form.php:55
+msgid "Pay on Site"
+msgstr "现场缴费"
+
+#: templates/registration-form.php:58
+msgid "Submit Registration"
+msgstr "提交注册"
+
+#: staff/index.php:42
+msgid "Staff Check-in Portal"
+msgstr "工作人员报到入口"
+
+#: staff/index.php:60
+msgid "Staff Check-in"
+msgstr "现场报到确认"
+
+#: staff/index.php:63
+msgid "Search by Phone, Name, or Code..."
+msgstr "通过手机号、姓名或验证码搜索..."
+
+#: staff/material-desk.php:42
+msgid "Live Material Desk"
+msgstr "现场资料领取处"
+
+#: staff/material-desk.php:56
+msgid "Live Material Distribution Board"
+msgstr "现场资料发放实时看板"
+
+#: templates/emails/order-received.php:8
+msgid "Order Received"
+msgstr "订单已接收"
+
+#: templates/emails/payment-confirmed.php:8
+msgid "Payment Confirmed"
+msgstr "支付已确认"

@@ -41,7 +41,21 @@ if ( ! defined( 'ABSPATH' ) ) {
 
 		<hr>
 
-		<h2><?php echo esc_html__( 'Ticket Configuration', 'conf-manager' ); ?></h2>
+		<h2><?php echo esc_html__( 'Language Settings', 'conf-manager' ); ?></h2>
+		<table class="form-table">
+			<tr>
+				<th scope="row"><?php echo esc_html__( 'Default Language', 'conf-manager' ); ?></th>
+				<td>
+					<select name="conf_default_language">
+						<option value="zh_CN" <?php selected( get_option( 'conf_default_language' ), 'zh_CN' ); ?>>简体中文 (Simplified Chinese)</option>
+						<option value="en_US" <?php selected( get_option( 'conf_default_language' ), 'en_US' ); ?>>English</option>
+					</select>
+					<p class="description"><?php echo esc_html__( 'Choose the default language if the browser language is not detected.', 'conf-manager' ); ?></p>
+				</td>
+			</tr>
+		</table>
+
+		<hr>
 		<table class="form-table">
 			<tr>
 				<th scope="row"><?php echo esc_html__( 'Ticket Name', 'conf-manager' ); ?></th>
