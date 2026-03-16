@@ -66,4 +66,28 @@ class Conf_WeChat_Pay {
 		
 		return new WP_REST_Response( array( 'code' => 'SUCCESS', 'message' => 'OK' ), 200 );
 	}
+
+	/**
+	 * Refund a specific attendee
+	 */
+	public function refund_attendee( $attendee_id ) {
+		global $wpdb;
+		$table = $wpdb->prefix . 'conf_attendees';
+		
+		$attendee = $wpdb->get_row( $wpdb->prepare( "SELECT * FROM $table WHERE id = %d", $attendee_id ) );
+		if ( ! $attendee || $attendee->checkin_status === 'checked_in' ) {
+			return false;
+		}
+
+		// Mock: Call WeChat Pay Refund API
+		// ...
+		
+		$wpdb->update(
+			$table,
+			array( 'refund_status' => 'refunded' ),
+			array( 'id' => $attendee_id )
+		);
+
+		return true;
+	}
 }

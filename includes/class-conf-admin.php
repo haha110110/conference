@@ -48,6 +48,52 @@ class Conf_Admin {
 			'conf-manual-approval',
 			array( $this, 'render_manual_approval' )
 		);
+
+		add_submenu_page(
+			'conf-manager',
+			__( 'Refunds', 'conf-manager' ),
+			__( 'Refunds', 'conf-manager' ),
+			'manage_options',
+			'conf-refunds',
+			array( $this, 'render_refunds' )
+		);
+	}
+
+	/**
+	 * Render refunds page
+	 */
+	public function render_refunds() {
+		global $wpdb;
+		$table = $wpdb->prefix . 'conf_attendees';
+
+		if ( isset( $_GET['refund'] ) ) {
+			$attendee_id = intval( $_GET['refund'] );
+			$wechat_pay = new Conf_WeChat_Pay();
+			if ( $wechat_pay->refund_attendee( $attendee_id ) ) {
+				echo '<div class="updated"><p>' . esc_html__( 'Refund Processed!', 'conf-manager' ) . '</p></div>';
+			} else {
+				echo '<div class="error"><p>' . esc_html__( 'Refund Failed (Check-in status?).', 'conf-manager' ) . '</p></div>';
+			}
+		}
+
+		$attendees_to_refund = $wpdb->get_results( "SELECT * FROM $table WHERE refund_status = 'pending'" );
+
+		echo '<div class="wrap"><h1>' . esc_html__( 'Refund Management', 'conf-manager' ) . '</h1>';
+		if ( empty( $attendees_to_refund ) ) {
+			echo '<p>' . esc_html__( 'No pending refund requests.', 'conf-manager' ) . '</p>';
+		} else {
+			echo '<table class="wp-list-table widefat fixed striped">';
+			echo '<thead><tr><th>' . esc_html__( 'Attendee', 'conf-manager' ) . '</th><th>' . esc_html__( 'Order', 'conf-manager' ) . '</th><th>' . esc_html__( 'Action', 'conf-manager' ) . '</th></tr></thead><tbody>';
+			foreach ( $attendees_to_refund as $attendee ) {
+				echo '<tr>';
+				echo '<td>' . esc_html( $attendee->name ) . ' (' . esc_html( $attendee->phone ) . ')</td>';
+				echo '<td>' . $attendee->order_id . '</td>';
+				echo '<td><a href="' . esc_url( add_query_arg( 'refund', $attendee->id ) ) . '" class="button">' . esc_html__( 'Process Refund', 'conf-manager' ) . '</a></td>';
+				echo '</tr>';
+			}
+			echo '</tbody></table>';
+		}
+		echo '</div>';
 	}
 
 	/**
