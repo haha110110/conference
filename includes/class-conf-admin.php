@@ -103,7 +103,11 @@ class Conf_Admin {
 		if ( isset( $_GET['approve'] ) ) {
 			$order_id = intval( $_GET['approve'] );
 			update_post_meta( $order_id, 'conf_status', 'paid' );
-			echo '<div class="updated"><p>' . esc_html__( 'Order Approved!', 'conf-manager' ) . '</p></div>';
+			
+			// Send confirmation email
+			Conf_Manager::send_email( $order_id, 'confirmed' );
+			
+			echo '<div class="updated"><p>' . esc_html__( 'Order Approved and Email Sent!', 'conf-manager' ) . '</p></div>';
 		}
 
 		$args = array(
@@ -166,15 +170,107 @@ class Conf_Admin {
 		register_setting( 'conf_settings_group', 'conf_bank_acc_name' );
 		register_setting( 'conf_settings_group', 'conf_bank_acc_no' );
 		register_setting( 'conf_settings_group', 'conf_bank_name' );
+
+		// Form Field Settings
+		register_setting( 'conf_settings_group', 'conf_field_company_req' );
+		register_setting( 'conf_settings_group', 'conf_field_jobtitle_req' );
+
+		// Email Settings
+		register_setting( 'conf_settings_group', 'conf_email_received_body' );
+		register_setting( 'conf_settings_group', 'conf_email_confirmed_body' );
 	}
 
 	/**
 	 * Render the main dashboard
 	 */
 	public function render_dashboard() {
-		echo '<h1>' . esc_html__( 'Conference Dashboard', 'conf-manager' ) . '</h1>';
-		echo '<p>' . esc_html__( 'Welcome to the Conference Management dashboard.', 'conf-manager' ) . '</p>';
+		global $wpdb;
+		$table_attendees = $wpdb->prefix . 'conf_attendees';
+
+		// Handle CSV Export
+		if ( isset( $_GET['export_csv'] ) && current_user_can( 'manage_options' ) ) {
+			header( 'Content-Type: text/csv; charset=utf-8' );
+			header( 'Content-Disposition: attachment; filename=attendees-' . date( 'Y-m-d' ) . '.csv' );
+			$output = fopen( 'php://output', 'w' );
+			
+			// UTF-8 BOM for Excel
+			fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+			
+			fputcsv( $output, array( 
+				__( 'ID', 'conf-manager' ), 
+				__( 'Order ID', 'conf-manager' ), 
+				__( 'Name', 'conf-manager' ), 
+				__( 'Phone', 'conf-manager' ), 
+				__( 'Company', 'conf-manager' ), 
+				__( 'Job Title', 'conf-manager' ), 
+				__( 'Payment Status', 'conf-manager' ), 
+				__( 'Check-in Time', 'conf-manager' ), 
+				__( 'Material Time', 'conf-manager' ) 
+			) );
+			
+			$attendees = $wpdb->get_results( "SELECT * FROM $table_attendees ORDER BY id DESC" );
+			foreach ( $attendees as $att ) {
+				$payment_status = get_post_meta( $att->order_id, 'conf_status', true );
+				fputcsv( $output, array(
+					$att->id,
+					$att->order_id,
+					$att->name,
+					$att->phone,
+					$att->company,
+					$att->job_title,
+					strtoupper( $payment_status ),
+					$att->checkin_time ? $att->checkin_time : '-',
+					$att->material_time ? $att->material_time : '-'
+				) );
+			}
+			fclose( $output );
+			exit;
+		}
+
+		$attendees = $wpdb->get_results( "SELECT * FROM $table_attendees ORDER BY id DESC LIMIT 500" );
+
+		echo '<div class="wrap">';
+		echo '<h1 class="wp-heading-inline">' . esc_html__( 'Conference Dashboard (Master List)', 'conf-manager' ) . '</h1>';
+		echo '<a href="' . esc_url( add_query_arg( 'export_csv', '1' ) ) . '" class="page-title-action">' . esc_html__( 'Export to CSV', 'conf-manager' ) . '</a>';
+		echo '<hr class="wp-header-end">';
+
+		if ( empty( $attendees ) ) {
+			echo '<p>' . esc_html__( 'No attendees found.', 'conf-manager' ) . '</p>';
+		} else {
+			echo '<table class="wp-list-table widefat fixed striped">';
+			echo '<thead><tr>';
+			echo '<th>' . esc_html__( 'Name', 'conf-manager' ) . '</th>';
+			echo '<th>' . esc_html__( 'Phone', 'conf-manager' ) . '</th>';
+			echo '<th>' . esc_html__( 'Company', 'conf-manager' ) . '</th>';
+			echo '<th>' . esc_html__( 'Job Title', 'conf-manager' ) . '</th>';
+			echo '<th>' . esc_html__( 'Payment', 'conf-manager' ) . '</th>';
+			echo '<th>' . esc_html__( 'Check-in Time', 'conf-manager' ) . '</th>';
+			echo '<th>' . esc_html__( 'Materials', 'conf-manager' ) . '</th>';
+			echo '</tr></thead><tbody>';
+
+			foreach ( $attendees as $att ) {
+				$payment_status = get_post_meta( $att->order_id, 'conf_status', true );
+				
+				// Status Color
+				$color = '#888';
+				if ($payment_status === 'paid') $color = 'green';
+				if ($payment_status === 'unpaid') $color = 'red';
+				
+				echo '<tr>';
+				echo '<td><strong>' . esc_html( $att->name ) . '</strong></td>';
+				echo '<td>' . esc_html( $att->phone ) . '</td>';
+				echo '<td>' . esc_html( $att->company ) . '</td>';
+				echo '<td>' . esc_html( $att->job_title ) . '</td>';
+				echo '<td><span style="color: ' . $color . '; font-weight: bold;">' . esc_html( strtoupper( $payment_status ) ) . '</span></td>';
+				echo '<td>' . ( $att->checkin_time ? esc_html( $att->checkin_time ) : '-' ) . '</td>';
+				echo '<td>' . ( $att->material_time ? esc_html( $att->material_time ) : '-' ) . '</td>';
+				echo '</tr>';
+			}
+			echo '</tbody></table>';
+		}
+		echo '</div>';
 	}
+
 
 	/**
 	 * Render the settings page

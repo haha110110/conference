@@ -50,12 +50,12 @@ $ticket_price = get_option( 'conf_ticket_price', '0' );
 						</div>
 						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
 							<div class="conf-form-group">
-								<label><?php esc_html_e( 'Company', 'conf-manager' ); ?></label>
-								<input type="text" name="attendees[0][company]" class="conf-input" value="<?php echo esc_attr( get_user_meta( $current_user->ID, 'conf_company', true ) ); ?>">
+								<label><?php esc_html_e( 'Company', 'conf-manager' ); echo get_option( 'conf_field_company_req' ) ? ' *' : ''; ?></label>
+								<input type="text" name="attendees[0][company]" class="conf-input" value="<?php echo esc_attr( get_user_meta( $current_user->ID, 'conf_company', true ) ); ?>" <?php echo get_option( 'conf_field_company_req' ) ? 'required' : ''; ?>>
 							</div>
 							<div class="conf-form-group">
-								<label><?php esc_html_e( 'Job Title', 'conf-manager' ); ?></label>
-								<input type="text" name="attendees[0][job_title]" class="conf-input" value="<?php echo esc_attr( get_user_meta( $current_user->ID, 'conf_job_title', true ) ); ?>">
+								<label><?php esc_html_e( 'Job Title', 'conf-manager' ); echo get_option( 'conf_field_jobtitle_req' ) ? ' *' : ''; ?></label>
+								<input type="text" name="attendees[0][job_title]" class="conf-input" value="<?php echo esc_attr( get_user_meta( $current_user->ID, 'conf_job_title', true ) ); ?>" <?php echo get_option( 'conf_field_jobtitle_req' ) ? 'required' : ''; ?>>
 							</div>
 						</div>
 					</div>

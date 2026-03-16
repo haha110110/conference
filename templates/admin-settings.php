@@ -85,6 +85,56 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 		</table>
 
+		<hr>
+
+		<h2><?php echo esc_html__( 'Registration Form Fields', 'conf-manager' ); ?></h2>
+		<table class="form-table">
+			<tr>
+				<th scope="row"><?php echo esc_html__( 'Require Company Name?', 'conf-manager' ); ?></th>
+				<td>
+					<label>
+						<input type="checkbox" name="conf_field_company_req" value="1" <?php checked( get_option( 'conf_field_company_req' ), '1' ); ?>>
+						<?php echo esc_html__( 'Yes, make the Company field mandatory.', 'conf-manager' ); ?>
+					</label>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php echo esc_html__( 'Require Job Title?', 'conf-manager' ); ?></th>
+				<td>
+					<label>
+						<input type="checkbox" name="conf_field_jobtitle_req" value="1" <?php checked( get_option( 'conf_field_jobtitle_req' ), '1' ); ?>>
+						<?php echo esc_html__( 'Yes, make the Job Title field mandatory.', 'conf-manager' ); ?>
+					</label>
+				</td>
+			</tr>
+		</table>
+
+		<hr>
+
+		<h2><?php echo esc_html__( 'Email Templates', 'conf-manager' ); ?></h2>
+		<p class="description"><?php echo esc_html__( 'Available placeholders: {registrant_name}, {order_id}, {payment_method}, {attendee_list}', 'conf-manager' ); ?></p>
+		
+		<table class="form-table">
+			<tr>
+				<th scope="row"><?php echo esc_html__( 'Order Received Email Body', 'conf-manager' ); ?></th>
+				<td>
+					<?php 
+					$received_content = get_option( 'conf_email_received_body', 'Your order #{order_id} has been received. Payment Method: {payment_method}.' );
+					wp_editor( $received_content, 'conf_email_received_body', array( 'textarea_name' => 'conf_email_received_body', 'media_buttons' => false, 'textarea_rows' => 5 ) ); 
+					?>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php echo esc_html__( 'Payment Confirmed Email Body', 'conf-manager' ); ?></th>
+				<td>
+					<?php 
+					$confirmed_content = get_option( 'conf_email_confirmed_body', 'Your payment is confirmed! Here is your check-in code info: {attendee_list}' );
+					wp_editor( $confirmed_content, 'conf_email_confirmed_body', array( 'textarea_name' => 'conf_email_confirmed_body', 'media_buttons' => false, 'textarea_rows' => 5 ) ); 
+					?>
+				</td>
+			</tr>
+		</table>
+
 		<?php submit_button(); ?>
 	</form>
 </div>

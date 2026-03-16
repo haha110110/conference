@@ -91,6 +91,50 @@ class Conf_Manager {
 	}
 
 	/**
+	 * Send conference email using dynamic templates
+	 */
+	public static function send_email( $order_id, $type ) {
+		$order = get_post( $order_id );
+		if ( ! $order ) return false;
+
+		$user = get_userdata( $order->post_author );
+		if ( ! $user ) return false;
+
+		$payment_method = get_post_meta( $order_id, 'conf_payment_method', true );
+		
+		global $wpdb;
+		$table_attendees = $wpdb->prefix . 'conf_attendees';
+		$attendees = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $table_attendees WHERE order_id = %d", $order_id ) );
+		
+		$attendee_list = '<ul>';
+		foreach ( $attendees as $att ) {
+			$attendee_list .= '<li>' . esc_html( $att->name ) . ' - Code: <strong>' . esc_html( $att->six_digit_code ) . '</strong></li>';
+		}
+		$attendee_list .= '</ul>';
+
+		$subject = '';
+		$body = '';
+
+		if ( $type === 'received' ) {
+			$subject = __( 'Order Received', 'conf-manager' );
+			$body = get_option( 'conf_email_received_body', 'Your order #{order_id} has been received. Payment Method: {payment_method}.' );
+		} elseif ( $type === 'confirmed' ) {
+			$subject = __( 'Payment Confirmed', 'conf-manager' );
+			$body = get_option( 'conf_email_confirmed_body', 'Your payment is confirmed! Here is your check-in code info: {attendee_list}' );
+		}
+
+		// Replace placeholders
+		$body = str_replace( '{registrant_name}', $user->display_name, $body );
+		$body = str_replace( '{order_id}', $order_id, $body );
+		$body = str_replace( '{payment_method}', strtoupper( $payment_method ), $body );
+		$body = str_replace( '{attendee_list}', $attendee_list, $body );
+
+		$headers = array('Content-Type: text/html; charset=UTF-8');
+
+		return wp_mail( $user->user_email, $subject, wpautop( $body ), $headers );
+	}
+
+	/**
 	 * Load translation files
 	 */
 	public function load_textdomain() {

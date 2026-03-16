@@ -4,26 +4,31 @@ jQuery(document).ready(function($) {
     // Add Attendee
     $('#add-attendee').on('click', function() {
         const index = attendeeIndex;
+        const compReq = conf_vars.company_req == '1' ? 'required' : '';
+        const compAst = conf_vars.company_req == '1' ? ' *' : '';
+        const jobReq = conf_vars.jobtitle_req == '1' ? 'required' : '';
+        const jobAst = conf_vars.jobtitle_req == '1' ? ' *' : '';
+
         const attendeeTemplate = `
             <div class="attendee-card" data-index="${index}">
                 <span class="remove-attendee">&times;</span>
                 <h3>Attendee ${index + 1}</h3>
                 <div class="conf-form-group">
-                    <label>Full Name</label>
+                    <label>Full Name *</label>
                     <input type="text" name="attendees[${index}][name]" class="conf-input" required>
                 </div>
                 <div class="conf-form-group">
-                    <label>Phone Number</label>
+                    <label>Phone Number *</label>
                     <input type="text" name="attendees[${index}][phone]" class="conf-input" required>
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div class="conf-form-group">
-                        <label>Company</label>
-                        <input type="text" name="attendees[${index}][company]" class="conf-input">
+                        <label>Company${compAst}</label>
+                        <input type="text" name="attendees[${index}][company]" class="conf-input" ${compReq}>
                     </div>
                     <div class="conf-form-group">
-                        <label>Job Title</label>
-                        <input type="text" name="attendees[${index}][job_title]" class="conf-input">
+                        <label>Job Title${jobAst}</label>
+                        <input type="text" name="attendees[${index}][job_title]" class="conf-input" ${jobReq}>
                     </div>
                 </div>
             </div>`;

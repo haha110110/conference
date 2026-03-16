@@ -72,8 +72,10 @@ class Conf_Registration {
 		wp_enqueue_style( 'conf-styles', CONF_MANAGER_URL . 'assets/css/conference.css', array(), CONF_MANAGER_VERSION );
 		wp_enqueue_script( 'conf-registration', CONF_MANAGER_URL . 'assets/js/registration.js', array( 'jquery' ), CONF_MANAGER_VERSION, true );
 		wp_localize_script( 'conf-registration', 'conf_vars', array(
-			'ajax_url' => admin_url( 'admin-ajax.php' ),
-			'nonce'    => wp_create_nonce( 'conf_registration_nonce' ),
+			'ajax_url'     => admin_url( 'admin-ajax.php' ),
+			'nonce'        => wp_create_nonce( 'conf_registration_nonce' ),
+			'company_req'  => get_option( 'conf_field_company_req' ),
+			'jobtitle_req' => get_option( 'conf_field_jobtitle_req' ),
 		) );
 	}
 
@@ -169,6 +171,11 @@ class Conf_Registration {
 					'six_digit_code' => $six_digit_code,
 				)
 			);
+		}
+
+		// Send email based on payment method
+		if ( $payment_method === 'bank' || $payment_method === 'onsite' ) {
+			Conf_Manager::send_email( $order_id, 'received' );
 		}
 
 		wp_send_json_success( array(
