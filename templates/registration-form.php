@@ -48,6 +48,14 @@ $current_user = wp_get_current_user();
 			<input type="radio" name="payment_method" value="bank" id="pay_bank">
 			<label for="pay_bank"><?php esc_html_e( 'Bank Transfer', 'conf-manager' ); ?></label><br>
 			
+			<div id="bank-transfer-details" style="display: none; border: 1px dashed #ccc; padding: 10px; margin: 10px 0;">
+				<p><?php echo wp_kses_post( sprintf( __( 'Please transfer the total amount to the following account:<br><strong>Account Name:</strong> %s<br><strong>Account No:</strong> %s<br><strong>Bank:</strong> %s', 'conf-manager' ), get_option( 'conf_bank_acc_name' ), get_option( 'conf_bank_acc_no' ), get_option( 'conf_bank_name' ) ) ); ?></p>
+				<p>
+					<label><?php esc_html_e( 'Upload Receipt:', 'conf-manager' ); ?></label>
+					<input type="file" name="bank_receipt" id="bank_receipt" accept="image/*">
+				</p>
+			</div>
+
 			<input type="radio" name="payment_method" value="onsite" id="pay_onsite">
 			<label for="pay_onsite"><?php esc_html_e( 'Pay on Site', 'conf-manager' ); ?></label>
 		</p>

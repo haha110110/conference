@@ -123,6 +123,17 @@ class Conf_Registration {
 		update_post_meta( $order_id, 'conf_payment_method', $payment_method );
 		update_post_meta( $order_id, 'conf_status', ( $payment_method === 'onsite' ? 'unpaid' : 'pending' ) );
 
+		// Handle bank receipt upload
+		if ( $payment_method === 'bank' && ! empty( $_FILES['bank_receipt']['name'] ) ) {
+			if ( ! function_exists( 'wp_handle_upload' ) ) {
+				require_once ABSPATH . 'wp-admin/includes/file.php';
+			}
+			$uploaded_file = wp_handle_upload( $_FILES['bank_receipt'], array( 'test_form' => false ) );
+			if ( isset( $uploaded_file['url'] ) ) {
+				update_post_meta( $order_id, 'conf_bank_receipt_url', $uploaded_file['url'] );
+			}
+		}
+
 		global $wpdb;
 		$table_attendees = $wpdb->prefix . 'conf_attendees';
 

@@ -30,6 +30,9 @@ class Conf_Manager {
 
 		require_once CONF_MANAGER_PATH . 'includes/class-conf-registration.php';
 		new Conf_Registration();
+
+		require_once CONF_MANAGER_PATH . 'includes/class-conf-wechat-pay.php';
+		new Conf_WeChat_Pay();
 	}
 
 	/**

@@ -31,6 +31,14 @@ jQuery(document).ready(function($) {
         $(this).closest('.attendee-row').remove();
     });
 
+    $('input[name="payment_method"]').on('change', function() {
+        if ($(this).val() === 'bank') {
+            $('#bank-transfer-details').show();
+        } else {
+            $('#bank-transfer-details').hide();
+        }
+    });
+
     $('#conf-registration-form').on('submit', function(e) {
         e.preventDefault();
         const $form = $(this);
@@ -40,10 +48,16 @@ jQuery(document).ready(function($) {
         $submitBtn.prop('disabled', true);
         $msgContainer.html('Submitting...');
 
+        const formData = new FormData(this);
+        formData.append('action', 'conf_submit_registration');
+        formData.append('nonce', conf_vars.nonce);
+
         $.ajax({
             url: conf_vars.ajax_url,
             type: 'POST',
-            data: $form.serialize() + '&action=conf_submit_registration&nonce=' + conf_vars.nonce,
+            data: formData,
+            processData: false,
+            contentType: false,
             success: function(response) {
                 if (response.success) {
                     $msgContainer.html('<p style="color: green;">' + response.data.message + '</p>');

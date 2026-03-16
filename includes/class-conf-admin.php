@@ -39,6 +39,63 @@ class Conf_Admin {
 			'conf-settings',
 			array( $this, 'render_settings' )
 		);
+
+		add_submenu_page(
+			'conf-manager',
+			__( 'Manual Approval', 'conf-manager' ),
+			__( 'Manual Approval', 'conf-manager' ),
+			'manage_options',
+			'conf-manual-approval',
+			array( $this, 'render_manual_approval' )
+		);
+	}
+
+	/**
+	 * Render manual approval page
+	 */
+	public function render_manual_approval() {
+		if ( isset( $_GET['approve'] ) ) {
+			$order_id = intval( $_GET['approve'] );
+			update_post_meta( $order_id, 'conf_status', 'paid' );
+			echo '<div class="updated"><p>' . esc_html__( 'Order Approved!', 'conf-manager' ) . '</p></div>';
+		}
+
+		$args = array(
+			'post_type'  => 'conf_order',
+			'meta_query' => array(
+				array(
+					'key'     => 'conf_payment_method',
+					'value'   => 'bank',
+					'compare' => '=',
+				),
+				array(
+					'key'     => 'conf_status',
+					'value'   => 'pending',
+					'compare' => '=',
+				),
+			),
+		);
+		$pending_orders = get_posts( $args );
+
+		echo '<div class="wrap"><h1>' . esc_html__( 'Manual Bank Approval', 'conf-manager' ) . '</h1>';
+		if ( empty( $pending_orders ) ) {
+			echo '<p>' . esc_html__( 'No pending bank transfers.', 'conf-manager' ) . '</p>';
+		} else {
+			echo '<table class="wp-list-table widefat fixed striped">';
+			echo '<thead><tr><th>' . esc_html__( 'Order ID', 'conf-manager' ) . '</th><th>' . esc_html__( 'Registrant', 'conf-manager' ) . '</th><th>' . esc_html__( 'Receipt', 'conf-manager' ) . '</th><th>' . esc_html__( 'Action', 'conf-manager' ) . '</th></tr></thead><tbody>';
+			foreach ( $pending_orders as $order ) {
+				$receipt_url = get_post_meta( $order->ID, 'conf_bank_receipt_url', true );
+				$user = get_userdata( $order->post_author );
+				echo '<tr>';
+				echo '<td>' . $order->ID . '</td>';
+				echo '<td>' . ( $user ? $user->display_name : 'N/A' ) . '</td>';
+				echo '<td><a href="' . esc_url( $receipt_url ) . '" target="_blank">' . esc_html__( 'View Receipt', 'conf-manager' ) . '</a></td>';
+				echo '<td><a href="' . esc_url( add_query_arg( 'approve', $order->ID ) ) . '" class="button button-primary">' . esc_html__( 'Approve', 'conf-manager' ) . '</a></td>';
+				echo '</tr>';
+			}
+			echo '</tbody></table>';
+		}
+		echo '</div>';
 	}
 
 	/**
