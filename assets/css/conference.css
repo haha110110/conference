@@ -1,0 +1,248 @@
+/**
+ * Conference Manager - Modern UI Styles
+ */
+
+/* General Container */
+#conf-registration-container {
+    max-width: 800px;
+    margin: 40px auto;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    color: #2c3e50;
+    line-height: 1.6;
+}
+
+/* Card Layout */
+.conf-card {
+    background: #ffffff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 30px;
+    margin-bottom: 24px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.conf-card:hover {
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+}
+
+/* Typography */
+#conf-registration-container h1, 
+#conf-registration-container h2, 
+#conf-registration-container h3 {
+    color: #1a2a3a;
+    font-weight: 700;
+    margin-top: 0;
+}
+
+#conf-registration-container h2 {
+    font-size: 24px;
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 12px;
+    margin-bottom: 24px;
+}
+
+/* Progress Stepper */
+.conf-stepper {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    position: relative;
+}
+
+.conf-stepper::before {
+    content: "";
+    position: absolute;
+    top: 15px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: #e0e6ed;
+    z-index: 1;
+}
+
+.conf-step {
+    position: relative;
+    z-index: 2;
+    background: #ffffff;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid #e0e6ed;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    color: #a0aec0;
+}
+
+.conf-step.active {
+    border-color: #3498db;
+    background: #3498db;
+    color: #ffffff;
+}
+
+.conf-step.completed {
+    border-color: #2ecc71;
+    background: #2ecc71;
+    color: #ffffff;
+}
+
+/* Form Styling */
+.conf-form-group {
+    margin-bottom: 20px;
+}
+
+.conf-form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.conf-input {
+    width: 100%;
+    padding: 12px 16px;
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    font-size: 16px;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    box-sizing: border-box;
+}
+
+.conf-input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.15);
+}
+
+/* Buttons */
+.conf-btn {
+    display: inline-block;
+    padding: 12px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border: none;
+    font-size: 16px;
+    text-align: center;
+}
+
+.conf-btn-primary {
+    background: #3498db;
+    color: #ffffff;
+}
+
+.conf-btn-primary:hover {
+    background: #2980b9;
+    transform: translateY(-1px);
+}
+
+.conf-btn-secondary {
+    background: #f1f5f9;
+    color: #475569;
+}
+
+.conf-btn-secondary:hover {
+    background: #e2e8f0;
+}
+
+.conf-btn-danger {
+    background: #fee2e2;
+    color: #dc2626;
+}
+
+/* Attendee Rows */
+.attendee-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 20px;
+    margin-bottom: 16px;
+    position: relative;
+    background: #f8fafc;
+}
+
+.remove-attendee {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+    color: #94a3b8;
+    cursor: pointer;
+    font-size: 18px;
+    line-height: 1;
+}
+
+.remove-attendee:hover {
+    color: #dc2626;
+}
+
+/* Ticket Options */
+.ticket-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 16px;
+}
+
+.ticket-card {
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 20px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+}
+
+.ticket-card.selected {
+    border-color: #3498db;
+    background: #ebf8ff;
+}
+
+.ticket-price {
+    font-size: 24px;
+    font-weight: bold;
+    color: #2c3e50;
+    margin: 12px 0;
+}
+
+/* Dashboard Table */
+.conf-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.conf-table th {
+    text-align: left;
+    padding: 12px;
+    background: #f8fafc;
+    border-bottom: 2px solid #e2e8f0;
+    font-weight: 600;
+}
+
+.conf-table td {
+    padding: 12px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+/* Status Badges */
+.conf-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+
+.badge-paid { background: #dcfce7; color: #166534; }
+.badge-pending { background: #fef9c3; color: #854d0e; }
+.badge-unpaid { background: #fee2e2; color: #991b1b; }
+
+/* Responsive */
+@media (max-width: 640px) {
+    #conf-registration-container {
+        margin: 20px 10px;
+    }
+    .conf-card {
+        padding: 20px;
+    }
+}

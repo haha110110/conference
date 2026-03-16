@@ -69,6 +69,7 @@ class Conf_Registration {
 	 * Enqueue frontend scripts
 	 */
 	public function enqueue_scripts() {
+		wp_enqueue_style( 'conf-styles', CONF_MANAGER_URL . 'assets/css/conference.css', array(), CONF_MANAGER_VERSION );
 		wp_enqueue_script( 'conf-registration', CONF_MANAGER_URL . 'assets/js/registration.js', array( 'jquery' ), CONF_MANAGER_VERSION, true );
 		wp_localize_script( 'conf-registration', 'conf_vars', array(
 			'ajax_url' => admin_url( 'admin-ajax.php' ),
@@ -77,14 +78,30 @@ class Conf_Registration {
 	}
 
 	/**
-	 * Render the registration form
+	 * Render the registration form (Shortcode Router)
 	 */
 	public function render_form() {
 		if ( ! is_user_logged_in() ) {
-			return '<p>' . sprintf( __( 'Please <a href="%s">log in</a> to register for the conference.', 'conf-manager' ), wp_login_url( get_permalink() ) ) . '</p>';
+			ob_start();
+			include CONF_MANAGER_PATH . 'templates/login-register.php';
+			return ob_get_clean();
 		}
+
+		$action = isset( $_GET['action'] ) ? sanitize_text_field( $_GET['action'] ) : 'dashboard';
+		
 		ob_start();
-		include CONF_MANAGER_PATH . 'templates/registration-form.php';
+		switch ( $action ) {
+			case 'register':
+				include CONF_MANAGER_PATH . 'templates/registration-form.php';
+				break;
+			case 'order':
+				include CONF_MANAGER_PATH . 'templates/order-details.php';
+				break;
+			case 'dashboard':
+			default:
+				include CONF_MANAGER_PATH . 'templates/dashboard.php';
+				break;
+		}
 		return ob_get_clean();
 	}
 
