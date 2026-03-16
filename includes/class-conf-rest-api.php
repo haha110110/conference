@@ -31,6 +31,50 @@ class Conf_REST_API {
 			'callback'            => array( $this, 'checkin_attendee' ),
 			'permission_callback' => array( $this, 'check_staff_permission' ),
 		) );
+
+		register_rest_route( 'conf-manager/v1', '/material-feed', array(
+			'methods'             => 'GET',
+			'callback'            => array( $this, 'get_material_feed' ),
+			'permission_callback' => array( $this, 'check_staff_permission' ),
+		) );
+
+		register_rest_route( 'conf-manager/v1', '/distribute-material', array(
+			'methods'             => 'POST',
+			'callback'            => array( $this, 'distribute_material' ),
+			'permission_callback' => array( $this, 'check_staff_permission' ),
+		) );
+	}
+
+	/**
+	 * Get latest check-ins for material desk
+	 */
+	public function get_material_feed() {
+		global $wpdb;
+		$table = $wpdb->prefix . 'conf_attendees';
+
+		$results = $wpdb->get_results( "SELECT * FROM $table WHERE checkin_status = 'checked_in' AND material_status = 'not_distributed' ORDER BY checkin_time DESC LIMIT 50" );
+
+		return new WP_REST_Response( $results, 200 );
+	}
+
+	/**
+	 * Mark materials as distributed
+	 */
+	public function distribute_material( $request ) {
+		global $wpdb;
+		$attendee_id = $request->get_param( 'id' );
+		$table = $wpdb->prefix . 'conf_attendees';
+
+		$wpdb->update(
+			$table,
+			array(
+				'material_status' => 'distributed',
+				'material_time'   => current_time( 'mysql' ),
+			),
+			array( 'id' => $attendee_id )
+		);
+
+		return new WP_REST_Response( array( 'success' => true ), 200 );
 	}
 
 	/**
