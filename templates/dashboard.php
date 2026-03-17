@@ -8,13 +8,24 @@ if ( ! defined( 'ABSPATH' ) ) {
 }
 
 $current_user = wp_get_current_user();
+$paged = isset( $_GET['paged'] ) ? intval( $_GET['paged'] ) : 1;
+$posts_per_page = 10;
+
 $args = array(
 	'post_type'   => 'conf_order',
 	'post_status' => 'publish',
 	'author'      => $current_user->ID,
-	'numberposts' => -1,
+	'posts_per_page' => $posts_per_page,
+	'paged'      => $paged,
 );
 $orders = get_posts( $args );
+$total_orders = count( get_posts( array(
+	'post_type'   => 'conf_order',
+	'post_status' => 'publish',
+	'author'      => $current_user->ID,
+	'numberposts' => -1,
+) ) );
+$total_pages = ceil( $total_orders / $posts_per_page );
 ?>
 
 <div id="conf-registration-container">
@@ -57,14 +68,14 @@ $orders = get_posts( $args );
 						$badge_class = 'badge-' . $status;
 						?>
 						<tr>
-							<td>#<?php echo $order->ID; ?></td>
-							<td><?php echo get_the_date( '', $order->ID ); ?></td>
-							<td>
+							<td data-label="<?php esc_attr_e( 'Order ID', 'conf-manager' ); ?>">#<?php echo $order->ID; ?></td>
+							<td data-label="<?php esc_attr_e( 'Date', 'conf-manager' ); ?>"><?php echo get_the_date( '', $order->ID ); ?></td>
+							<td data-label="<?php esc_attr_e( 'Status', 'conf-manager' ); ?>">
 								<span class="conf-badge <?php echo $badge_class; ?>">
 									<?php echo esc_html( strtoupper( $status ) ); ?>
 								</span>
 							</td>
-							<td>
+							<td data-label="<?php esc_attr_e( 'Action', 'conf-manager' ); ?>">
 								<a href="<?php echo esc_url( add_query_arg( array( 'action' => 'order', 'id' => $order->ID ) ) ); ?>" class="conf-btn conf-btn-secondary" style="padding: 6px 12px; font-size: 13px;">
 									<?php esc_html_e( 'Details', 'conf-manager' ); ?>
 								</a>
@@ -73,6 +84,22 @@ $orders = get_posts( $args );
 					<?php endforeach; ?>
 				</tbody>
 			</table>
+			
+			<?php if ( $total_pages > 1 ) : ?>
+			<div class="conf-pagination" style="display: flex; justify-content: center; gap: 10px; margin-top: 30px;">
+				<?php if ( $paged > 1 ) : ?>
+					<a href="<?php echo esc_url( add_query_arg( 'paged', $paged - 1 ) ); ?>" class="conf-btn conf-btn-secondary">← Prev</a>
+				<?php endif; ?>
+				
+				<span style="padding: 12px 20px; color: #64748b;">
+					<?php printf( esc_html__( 'Page %d of %d', 'conf-manager' ), $paged, $total_pages ); ?>
+				</span>
+				
+				<?php if ( $paged < $total_pages ) : ?>
+					<a href="<?php echo esc_url( add_query_arg( 'paged', $paged + 1 ) ); ?>" class="conf-btn conf-btn-secondary">Next →</a>
+				<?php endif; ?>
+			</div>
+			<?php endif; ?>
 		<?php endif; ?>
 		
 		<div style="margin-top: 40px; text-align: right;">

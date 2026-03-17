@@ -66,53 +66,92 @@ class Conf_Admin {
 		global $wpdb;
 		$table = $wpdb->prefix . 'conf_attendees';
 
-		if ( isset( $_GET['refund'] ) ) {
+		// Security: Check nonce and permissions
+		if ( isset( $_GET['refund'] ) && isset( $_GET['_wpnonce'] ) ) {
+			if ( ! wp_verify_nonce( $_GET['_wpnonce'], 'conf_refund_' . $_GET['refund'] ) ) {
+				wp_die( __( 'Security check failed.', 'conf-manager' ) );
+			}
+			
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( __( 'You do not have permission to perform this action.', 'conf-manager' ) );
+			}
+			
 			$attendee_id = intval( $_GET['refund'] );
+			$action = isset( $_GET['action'] ) ? sanitize_text_field( $_GET['action'] ) : 'approve';
+			
 			$wechat_pay = new Conf_WeChat_Pay();
-			if ( $wechat_pay->refund_attendee( $attendee_id ) ) {
-				echo '<div class="updated"><p>' . esc_html__( 'Refund Processed!', 'conf-manager' ) . '</p></div>';
-			} else {
-				echo '<div class="error"><p>' . esc_html__( 'Refund Failed (Check-in status?).', 'conf-manager' ) . '</p></div>';
+			
+			if ( $action === 'approve' ) {
+				if ( $wechat_pay->refund_attendee( $attendee_id ) ) {
+					echo '<div class="updated"><p>' . esc_html__( 'Refund Processed Successfully!', 'conf-manager' ) . '</p></div>';
+				} else {
+					echo '<div class="error"><p>' . esc_html__( 'Refund Failed. Please check check-in status.', 'conf-manager' ) . '</p></div>';
+				}
+			} elseif ( $action === 'reject' ) {
+				// Reject refund request
+				$wpdb->update(
+					$table,
+					array( 'refund_status' => 'rejected' ),
+					array( 'id' => $attendee_id )
+				);
+				echo '<div class="updated"><p>' . esc_html__( 'Refund Request Rejected.', 'conf-manager' ) . '</p></div>';
 			}
 		}
 
-		$attendees_to_refund = $wpdb->get_results( "SELECT * FROM $table WHERE refund_status = 'pending'" );
+		// Filter by status
+		$filter_status = isset( $_GET['status'] ) ? sanitize_text_field( $_GET['status'] ) : 'pending';
+		
+		$attendees_to_refund = $wpdb->get_results( $wpdb->prepare( 
+			"SELECT * FROM $table WHERE refund_status = %s", 
+			$filter_status 
+		) );
 
-		echo '<div class="wrap"><h1>' . esc_html__( 'Refund Management', 'conf-manager' ) . '</h1>';
-		if ( empty( $attendees_to_refund ) ) {
-			echo '<p>' . esc_html__( 'No pending refund requests.', 'conf-manager' ) . '</p>';
-		} else {
-			echo '<table class="wp-list-table widefat fixed striped">';
-			echo '<thead><tr><th>' . esc_html__( 'Attendee', 'conf-manager' ) . '</th><th>' . esc_html__( 'Order', 'conf-manager' ) . '</th><th>' . esc_html__( 'Action', 'conf-manager' ) . '</th></tr></thead><tbody>';
-			foreach ( $attendees_to_refund as $attendee ) {
-				echo '<tr>';
-				echo '<td>' . esc_html( $attendee->name ) . ' (' . esc_html( $attendee->phone ) . ')</td>';
-				echo '<td>' . $attendee->order_id . '</td>';
-				echo '<td><a href="' . esc_url( add_query_arg( 'refund', $attendee->id ) ) . '" class="button">' . esc_html__( 'Process Refund', 'conf-manager' ) . '</a></td>';
-				echo '</tr>';
-			}
-			echo '</tbody></table>';
-		}
-		echo '</div>';
+		$ticket_price = floatval( get_option( 'conf_ticket_price', 0 ) );
+
+		include CONF_MANAGER_PATH . 'templates/admin-refunds.php';
 	}
 
 	/**
 	 * Render manual approval page
 	 */
 	public function render_manual_approval() {
-		if ( isset( $_GET['approve'] ) ) {
-			$order_id = intval( $_GET['approve'] );
-			update_post_meta( $order_id, 'conf_status', 'paid' );
+		// Security: Check nonce and permissions
+		if ( isset( $_GET['approve'] ) || isset( $_GET['reject'] ) ) {
+			$order_id = isset( $_GET['approve'] ) ? intval( $_GET['approve'] ) : intval( $_GET['reject'] );
 			
-			// Send confirmation email
-			Conf_Manager::send_email( $order_id, 'confirmed' );
+			if ( ! isset( $_GET['_wpnonce'] ) || ! wp_verify_nonce( $_GET['_wpnonce'], 'conf_approval_' . $order_id ) ) {
+				wp_die( __( 'Security check failed.', 'conf-manager' ) );
+			}
 			
-			echo '<div class="updated"><p>' . esc_html__( 'Order Approved and Email Sent!', 'conf-manager' ) . '</p></div>';
+			if ( ! current_user_can( 'manage_options' ) ) {
+				wp_die( __( 'You do not have permission to perform this action.', 'conf-manager' ) );
+			}
+			
+			$action = isset( $_GET['approve'] ) ? 'approve' : 'reject';
+			$order_id = intval( $_GET[ $action ] );
+			$order = get_post( $order_id );
+			
+			if ( $order && $order->post_type === 'conf_order' ) {
+				if ( $action === 'approve' ) {
+					update_post_meta( $order_id, 'conf_status', 'paid' );
+					update_post_meta( $order_id, 'conf_approved_by', get_current_user_id() );
+					update_post_meta( $order_id, 'conf_approved_time', current_time( 'mysql' ) );
+					Conf_Manager::send_email( $order_id, 'confirmed' );
+					echo '<div class="updated"><p>' . esc_html__( 'Order Approved and Confirmation Email Sent!', 'conf-manager' ) . '</p></div>';
+				} else {
+					update_post_meta( $order_id, 'conf_status', 'rejected' );
+					update_post_meta( $order_id, 'conf_rejected_by', get_current_user_id() );
+					update_post_meta( $order_id, 'conf_rejected_time', current_time( 'mysql' ) );
+					echo '<div class="updated"><p>' . esc_html__( 'Order Rejected.', 'conf-manager' ) . '</p></div>';
+				}
+			}
 		}
 
 		$args = array(
-			'post_type'  => 'conf_order',
-			'meta_query' => array(
+			'post_type'      => 'conf_order',
+			'post_status'    => 'publish',
+			'meta_query'     => array(
+				'relation' => 'AND',
 				array(
 					'key'     => 'conf_payment_method',
 					'value'   => 'bank',
@@ -124,28 +163,16 @@ class Conf_Admin {
 					'compare' => '=',
 				),
 			),
+			'posts_per_page' => -1,
 		);
 		$pending_orders = get_posts( $args );
 
-		echo '<div class="wrap"><h1>' . esc_html__( 'Manual Bank Approval', 'conf-manager' ) . '</h1>';
-		if ( empty( $pending_orders ) ) {
-			echo '<p>' . esc_html__( 'No pending bank transfers.', 'conf-manager' ) . '</p>';
-		} else {
-			echo '<table class="wp-list-table widefat fixed striped">';
-			echo '<thead><tr><th>' . esc_html__( 'Order ID', 'conf-manager' ) . '</th><th>' . esc_html__( 'Registrant', 'conf-manager' ) . '</th><th>' . esc_html__( 'Receipt', 'conf-manager' ) . '</th><th>' . esc_html__( 'Action', 'conf-manager' ) . '</th></tr></thead><tbody>';
-			foreach ( $pending_orders as $order ) {
-				$receipt_url = get_post_meta( $order->ID, 'conf_bank_receipt_url', true );
-				$user = get_userdata( $order->post_author );
-				echo '<tr>';
-				echo '<td>' . $order->ID . '</td>';
-				echo '<td>' . ( $user ? $user->display_name : 'N/A' ) . '</td>';
-				echo '<td><a href="' . esc_url( $receipt_url ) . '" target="_blank">' . esc_html__( 'View Receipt', 'conf-manager' ) . '</a></td>';
-				echo '<td><a href="' . esc_url( add_query_arg( 'approve', $order->ID ) ) . '" class="button button-primary">' . esc_html__( 'Approve', 'conf-manager' ) . '</a></td>';
-				echo '</tr>';
-			}
-			echo '</tbody></table>';
-		}
-		echo '</div>';
+		global $wpdb;
+		$ticket_price = floatval( get_option( 'conf_ticket_price', 0 ) );
+		$table_attendees = $wpdb->prefix . 'conf_attendees';
+		$total_pending = count( $pending_orders );
+
+		include CONF_MANAGER_PATH . 'templates/admin-manual-approval.php';
 	}
 
 	/**
@@ -187,7 +214,51 @@ class Conf_Admin {
 		global $wpdb;
 		$table_attendees = $wpdb->prefix . 'conf_attendees';
 
-		// Handle CSV Export
+		// Get filter parameters
+		$filter_status = isset( $_GET['status'] ) ? sanitize_text_field( $_GET['status'] ) : '';
+		$filter_payment = isset( $_GET['payment'] ) ? sanitize_text_field( $_GET['payment'] ) : '';
+		$filter_date_from = isset( $_GET['date_from'] ) ? sanitize_text_field( $_GET['date_from'] ) : '';
+		$filter_date_to = isset( $_GET['date_to'] ) ? sanitize_text_field( $_GET['date_to'] ) : '';
+		$search_term = isset( $_GET['s'] ) ? sanitize_text_field( $_GET['s'] ) : '';
+		$paged = isset( $_GET['paged'] ) ? max( 1, intval( $_GET['paged'] ) ) : 1;
+		$per_page = 20;
+
+		// Build query components
+		$joins = "";
+		$query_conditions = array();
+		$query_params = array();
+
+		// We need payment_status and payment_method in the SELECT for export and display, and in WHERE for filtering.
+		$selects = "a.*, IFNULL(pm_status.meta_value, '') as payment_status, IFNULL(pm_payment.meta_value, '') as payment_method";
+		$joins .= " LEFT JOIN {$wpdb->postmeta} pm_status ON pm_status.post_id = a.order_id AND pm_status.meta_key = 'conf_status'";
+		$joins .= " LEFT JOIN {$wpdb->postmeta} pm_payment ON pm_payment.post_id = a.order_id AND pm_payment.meta_key = 'conf_payment_method'";
+
+		if ( $filter_status ) {
+			$query_conditions[] = "pm_status.meta_value = %s";
+			$query_params[] = $filter_status;
+		}
+		
+		if ( $filter_payment ) {
+			$query_conditions[] = "pm_payment.meta_value = %s";
+			$query_params[] = $filter_payment;
+		}
+
+		if ( $search_term ) {
+			$query_conditions[] = "(a.name LIKE %s OR a.phone LIKE %s OR a.company LIKE %s OR a.six_digit_code = %s)";
+			$search_like = '%' . $wpdb->esc_like( $search_term ) . '%';
+			$query_params[] = $search_like;
+			$query_params[] = $search_like;
+			$query_params[] = $search_like;
+			$query_params[] = $search_term;
+		}
+
+		// Build WHERE string
+		$where_sql = "";
+		if ( ! empty( $query_conditions ) ) {
+			$where_sql = ' WHERE ' . implode( ' AND ', $query_conditions );
+		}
+
+		// Handle CSV Export with filters
 		if ( isset( $_GET['export_csv'] ) && current_user_can( 'manage_options' ) ) {
 			header( 'Content-Type: text/csv; charset=utf-8' );
 			header( 'Content-Disposition: attachment; filename=attendees-' . date( 'Y-m-d' ) . '.csv' );
@@ -204,13 +275,20 @@ class Conf_Admin {
 				__( 'Company', 'conf-manager' ), 
 				__( 'Job Title', 'conf-manager' ), 
 				__( 'Payment Status', 'conf-manager' ), 
+				__( 'Payment Method', 'conf-manager' ),
 				__( 'Check-in Time', 'conf-manager' ), 
 				__( 'Material Time', 'conf-manager' ) 
 			) );
 			
-			$attendees = $wpdb->get_results( "SELECT * FROM $table_attendees ORDER BY id DESC" );
+			$export_query = "SELECT $selects FROM $table_attendees a $joins $where_sql ORDER BY a.id DESC";
+			
+			if ( ! empty( $query_params ) ) {
+				$attendees = $wpdb->get_results( $wpdb->prepare( $export_query, $query_params ) );
+			} else {
+				$attendees = $wpdb->get_results( $export_query );
+			}
+			
 			foreach ( $attendees as $att ) {
-				$payment_status = get_post_meta( $att->order_id, 'conf_status', true );
 				fputcsv( $output, array(
 					$att->id,
 					$att->order_id,
@@ -218,7 +296,8 @@ class Conf_Admin {
 					$att->phone,
 					$att->company,
 					$att->job_title,
-					strtoupper( $payment_status ),
+					strtoupper( $att->payment_status ),
+					strtoupper( $att->payment_method ),
 					$att->checkin_time ? $att->checkin_time : '-',
 					$att->material_time ? $att->material_time : '-'
 				) );
@@ -227,48 +306,29 @@ class Conf_Admin {
 			exit;
 		}
 
-		$attendees = $wpdb->get_results( "SELECT * FROM $table_attendees ORDER BY id DESC LIMIT 500" );
-
-		echo '<div class="wrap">';
-		echo '<h1 class="wp-heading-inline">' . esc_html__( 'Conference Dashboard (Master List)', 'conf-manager' ) . '</h1>';
-		echo '<a href="' . esc_url( add_query_arg( 'export_csv', '1' ) ) . '" class="page-title-action">' . esc_html__( 'Export to CSV', 'conf-manager' ) . '</a>';
-		echo '<hr class="wp-header-end">';
-
-		if ( empty( $attendees ) ) {
-			echo '<p>' . esc_html__( 'No attendees found.', 'conf-manager' ) . '</p>';
+		// Calculate Totals for Pagination
+		$count_query = "SELECT COUNT(a.id) FROM $table_attendees a $joins $where_sql";
+		if ( ! empty( $query_params ) ) {
+			$total_items = (int) $wpdb->get_var( $wpdb->prepare( $count_query, $query_params ) );
 		} else {
-			echo '<table class="wp-list-table widefat fixed striped">';
-			echo '<thead><tr>';
-			echo '<th>' . esc_html__( 'Name', 'conf-manager' ) . '</th>';
-			echo '<th>' . esc_html__( 'Phone', 'conf-manager' ) . '</th>';
-			echo '<th>' . esc_html__( 'Company', 'conf-manager' ) . '</th>';
-			echo '<th>' . esc_html__( 'Job Title', 'conf-manager' ) . '</th>';
-			echo '<th>' . esc_html__( 'Payment', 'conf-manager' ) . '</th>';
-			echo '<th>' . esc_html__( 'Check-in Time', 'conf-manager' ) . '</th>';
-			echo '<th>' . esc_html__( 'Materials', 'conf-manager' ) . '</th>';
-			echo '</tr></thead><tbody>';
-
-			foreach ( $attendees as $att ) {
-				$payment_status = get_post_meta( $att->order_id, 'conf_status', true );
-				
-				// Status Color
-				$color = '#888';
-				if ($payment_status === 'paid') $color = 'green';
-				if ($payment_status === 'unpaid') $color = 'red';
-				
-				echo '<tr>';
-				echo '<td><strong>' . esc_html( $att->name ) . '</strong></td>';
-				echo '<td>' . esc_html( $att->phone ) . '</td>';
-				echo '<td>' . esc_html( $att->company ) . '</td>';
-				echo '<td>' . esc_html( $att->job_title ) . '</td>';
-				echo '<td><span style="color: ' . $color . '; font-weight: bold;">' . esc_html( strtoupper( $payment_status ) ) . '</span></td>';
-				echo '<td>' . ( $att->checkin_time ? esc_html( $att->checkin_time ) : '-' ) . '</td>';
-				echo '<td>' . ( $att->material_time ? esc_html( $att->material_time ) : '-' ) . '</td>';
-				echo '</tr>';
-			}
-			echo '</tbody></table>';
+			$total_items = (int) $wpdb->get_var( $count_query );
 		}
-		echo '</div>';
+		
+		$total_pages = ceil( $total_items / $per_page );
+		$offset = ( $paged - 1 ) * $per_page;
+
+		// Execute Main Query
+		$attendees_query = "SELECT $selects FROM $table_attendees a $joins $where_sql ORDER BY a.id DESC LIMIT %d OFFSET %d";
+		
+		// Add limit and offset to params
+		$current_query_params = $query_params;
+		$current_query_params[] = $per_page;
+		$current_query_params[] = $offset;
+
+		$attendees = $wpdb->get_results( $wpdb->prepare( $attendees_query, $current_query_params ) );
+
+		// Include Template
+		include CONF_MANAGER_PATH . 'templates/admin-dashboard.php';
 	}
 
 

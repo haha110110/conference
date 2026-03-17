@@ -1,0 +1,14 @@
+{
+    "name": "conf-manager/wechat-pay",
+    "description": "Conference Manager WeChat Pay Integration",
+    "type": "wordpress-plugin",
+    "require": {
+        "php": ">=7.4",
+        "riverslei/payment": "^7.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "ConfWeChat\\": "includes/wechat-sdk/"
+        }
+    }
+}

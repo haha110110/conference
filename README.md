@@ -45,25 +45,69 @@ A specialized, mobile-first WordPress plugin designed for high-efficiency confer
    - Go to your WordPress Admin -> **Plugins** -> **Add New** -> **Upload Plugin**.
    - Activate the plugin.
 
-2. **Register Staff Members:**
+2. **Install Dependencies:**
+   ```bash
+   # Navigate to plugin directory
+   cd /path/to/wp-content/plugins/conference
+   
+   # Install Composer dependencies
+   composer install
+   ```
+
+3. **Configure WeChat Pay Certificates:**
+   - Download your merchant certificates from WeChat Merchant Platform:
+     - `apiclient_cert.pem`
+     - `apiclient_key.pem`
+   - Upload these files to the plugin directory: `/includes/certs/`
+   - Configure the certificate paths in WordPress admin settings
+
+4. **Register Staff Members:**
    - Create new WordPress users for your venue staff.
    - Assign them the **"Conference Staff"** role created by the plugin.
 
-3. **Configure Settings:**
+5. **Configure Settings:**
    - Navigate to the new **Conference** menu in your sidebar -> **Settings**.
-   - Input your **WeChat Pay credentials** (AppID, MchID, API Key).
+   - Input your **WeChat Pay credentials**:
+     - `conf_wechat_appid` - WeChat AppID
+     - `conf_wechat_mchid` - Merchant ID
+     - `conf_wechat_key` - API Key
+     - `conf_wechat_cert_path` - Certificate file path (e.g., `certs/apiclient_cert.pem`)
+     - `conf_wechat_key_path` - Key file path (e.g., `certs/apiclient_key.pem`)
    - Set your **Ticket Name** and **Price**.
    - Enter your **Bank Account Details** for manual transfers.
    - Select your **Default Language**.
 
-4. **Deploy the Registration Form:**
+6. **Deploy the Registration Form:**
    - Create a new Page in WordPress.
    - Insert the shortcode: `[conf_registration]`.
 
-5. **Access Staff Portals:**
+7. **Access Staff Portals:**
    - **Check-in Portal:** `yourdomain.com/wp-content/plugins/conference-manager/staff/index.php`
    - **Material Desk:** `yourdomain.com/wp-content/plugins/conference-manager/staff/material-desk.php`
    *(Staff must be logged in to access these URLs)*
+
+---
+
+## ⚠️ Important Notes
+
+### WeChat Pay Configuration
+1. **HTTPS Required:** Your site must use HTTPS for WeChat Pay to work.
+2. **Callback URL:** The payment callback URL is: `/wp-json/conf-manager/v1/wechat-callback`
+3. **Merchant Verification:** Ensure your WeChat Merchant Account has enabled the appropriate payment methods:
+   - **Native Pay** (QR Code) - for PC
+   - **H5 Pay** - for mobile browsers
+4. **IP Whitelist:** Add your server IP to the WeChat Merchant Platform allowed list.
+5. **Certificate Security:** Keep your certificate files secure. Do not commit them to version control.
+
+### Server Requirements
+- PHP `curl` extension
+- PHP `mbstring` extension
+- PHP `openssl` extension
+- Server must have outbound access to `api.mch.weixin.qq.com`
+
+### Payment Flow
+- **PC (Native):** User scans QR code with WeChat app → Payment → Auto-redirect
+- **Mobile (H5):** User clicks pay → Redirects to WeChat → Payment → Returns to site
 
 ---
 

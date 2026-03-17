@@ -11,15 +11,15 @@ jQuery(document).ready(function($) {
 
         const attendeeTemplate = `
             <div class="attendee-card" data-index="${index}">
-                <span class="remove-attendee">&times;</span>
+                <span class="remove-attendee" role="button" aria-label="Remove attendee">&times;</span>
                 <h3>Attendee ${index + 1}</h3>
                 <div class="conf-form-group">
                     <label>Full Name *</label>
-                    <input type="text" name="attendees[${index}][name]" class="conf-input" required>
+                    <input type="text" name="attendees[${index}][name]" class="conf-input" required pattern="^[\u4e00-\u9fa5a-zA-Z\s]{2,20}$" title="Please enter a valid name (2-20 characters)">
                 </div>
                 <div class="conf-form-group">
                     <label>Phone Number *</label>
-                    <input type="text" name="attendees[${index}][phone]" class="conf-input" required>
+                    <input type="tel" name="attendees[${index}][phone]" class="conf-input" required pattern="1[3-9]\d{9}" title="Please enter a valid Chinese mobile number">
                 </div>
                 <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
                     <div class="conf-form-group">
@@ -57,7 +57,24 @@ jQuery(document).ready(function($) {
                     $(this).css('border-color', '#d1d5db');
                 }
             });
+            // Validate phone pattern
+            $('#step-1 input[pattern]').each(function() {
+                const pattern = new RegExp($(this).attr('pattern'));
+                if ($(this).val() && !pattern.test($(this).val())) {
+                    $(this).css('border-color', '#dc2626');
+                    valid = false;
+                    alert('Please enter a valid ' + $(this).prev('label').text());
+                }
+            });
             if (!valid) return;
+        }
+
+        // Ticket selection validation for Step 2
+        if (currentStep === 2) {
+            if (!$('.ticket-card.selected').length) {
+                alert('Please select a ticket type');
+                return;
+            }
         }
 
         // Prepare Review Data (Step 2 -> Step 3)
@@ -150,19 +167,26 @@ jQuery(document).ready(function($) {
             data: formData,
             processData: false,
             contentType: false,
+            beforeSend: function() {
+                $submitBtn.append(' <span class="conf-loading">⏳</span>');
+            },
             success: function(response) {
                 if (response.success) {
                     $msgContainer.html('<div style="color: #166534; background: #dcfce7; padding: 15px; border-radius: 8px;">' + response.data.message + '</div>');
                     setTimeout(() => {
                         location.reload();
-                    }, 1000);
+                    }, 1500);
                 } else {
-                    $msgContainer.html('<div style="color: #991b1b; background: #fee2e2; padding: 15px; border-radius: 8px;">' + response.data.message + '</div>');
+                    $msgContainer.html('<div style="color: #991b1b; background: #fee2e2; padding: 15px; border-radius: 8px;">' + (response.data.message || 'An error occurred') + '</div>');
                     $submitBtn.prop('disabled', false).text('Update Payment Method');
                 }
             },
-            error: function() {
-                $msgContainer.html('<div style="color: #991b1b; background: #fee2e2; padding: 15px; border-radius: 8px;">Something went wrong.</div>');
+            error: function(xhr) {
+                let errorMsg = 'Something went wrong.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                }
+                $msgContainer.html('<div style="color: #991b1b; background: #fee2e2; padding: 15px; border-radius: 8px;">' + errorMsg + '</div>');
                 $submitBtn.prop('disabled', false).text('Update Payment Method');
             }
         });
@@ -188,6 +212,9 @@ jQuery(document).ready(function($) {
             data: formData,
             processData: false,
             contentType: false,
+            beforeSend: function() {
+                $submitBtn.append(' <span class="conf-loading">⏳</span>');
+            },
             success: function(response) {
                 if (response.success) {
                     $msgContainer.html('<div style="color: #166534; background: #dcfce7; padding: 15px; border-radius: 8px;">' + response.data.message + '</div>');
@@ -195,12 +222,16 @@ jQuery(document).ready(function($) {
                         window.location.href = window.location.href.split('?')[0] + '?action=order&id=' + response.data.order_id;
                     }, 1500);
                 } else {
-                    $msgContainer.html('<div style="color: #991b1b; background: #fee2e2; padding: 15px; border-radius: 8px;">' + response.data.message + '</div>');
+                    $msgContainer.html('<div style="color: #991b1b; background: #fee2e2; padding: 15px; border-radius: 8px;">' + (response.data.message || 'An error occurred') + '</div>');
                     $submitBtn.prop('disabled', false).text('Complete Registration');
                 }
             },
-            error: function() {
-                $msgContainer.html('<div style="color: #991b1b; background: #fee2e2; padding: 15px; border-radius: 8px;">Something went wrong.</div>');
+            error: function(xhr) {
+                let errorMsg = 'Something went wrong. Please try again.';
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errorMsg = xhr.responseJSON.message;
+                }
+                $msgContainer.html('<div style="color: #991b1b; background: #fee2e2; padding: 15px; border-radius: 8px;">' + errorMsg + '</div>');
                 $submitBtn.prop('disabled', false).text('Complete Registration');
             }
         });

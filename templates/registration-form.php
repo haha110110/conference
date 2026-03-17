@@ -41,12 +41,12 @@ $ticket_price = get_option( 'conf_ticket_price', '0' );
 					<div class="attendee-card" data-index="0">
 						<h3><?php esc_html_e( 'Attendee 1', 'conf-manager' ); ?></h3>
 						<div class="conf-form-group">
-							<label><?php esc_html_e( 'Full Name', 'conf-manager' ); ?></label>
-							<input type="text" name="attendees[0][name]" class="conf-input" value="<?php echo esc_attr( $current_user->display_name ); ?>" required>
+							<label><?php esc_html_e( 'Full Name', 'conf-manager' ); ?> *</label>
+							<input type="text" name="attendees[0][name]" class="conf-input" value="<?php echo esc_attr( $current_user->display_name ); ?>" required pattern="^[\u4e00-\u9fa5a-zA-Z\s]{2,20}$" title="Please enter a valid name (2-20 characters)">
 						</div>
 						<div class="conf-form-group">
-							<label><?php esc_html_e( 'Phone Number', 'conf-manager' ); ?></label>
-							<input type="text" name="attendees[0][phone]" class="conf-input" value="<?php echo esc_attr( get_user_meta( $current_user->ID, 'conf_phone', true ) ); ?>" required>
+							<label><?php esc_html_e( 'Phone Number', 'conf-manager' ); ?> *</label>
+							<input type="tel" name="attendees[0][phone]" class="conf-input" value="<?php echo esc_attr( get_user_meta( $current_user->ID, 'conf_phone', true ) ); ?>" required pattern="1[3-9]\d{9}" title="Please enter a valid Chinese mobile number">
 						</div>
 						<div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
 							<div class="conf-form-group">
@@ -160,7 +160,16 @@ $ticket_price = get_option( 'conf_ticket_price', '0' );
 
 				<div id="bank-transfer-instructions" style="display: none; margin-top: 30px; padding: 20px; border-radius: 12px; background: #fffbeb; border: 1px solid #fde68a;">
 					<h4><?php esc_html_e( 'Bank Transfer Instructions', 'conf-manager' ); ?></h4>
-					<p><?php echo wp_kses_post( sprintf( __( 'Please transfer to:<br><strong>Name:</strong> %s<br><strong>Account:</strong> %s<br><strong>Bank:</strong> %s', 'conf-manager' ), get_option( 'conf_bank_acc_name' ), get_option( 'conf_bank_acc_no' ), get_option( 'conf_bank_name' ) ) ); ?></p>
+					<?php
+					$bank_name = get_option( 'conf_bank_acc_name' );
+					$bank_acc = get_option( 'conf_bank_acc_no' );
+					$bank_bank = get_option( 'conf_bank_name' );
+					if ( $bank_name || $bank_acc || $bank_bank ) :
+					?>
+						<p><?php echo wp_kses_post( sprintf( __( 'Please transfer to:<br><strong>Name:</strong> %s<br><strong>Account:</strong> %s<br><strong>Bank:</strong> %s', 'conf-manager' ), $bank_name ?: '-', $bank_acc ?: '-', $bank_bank ?: '-' ) ); ?></p>
+					<?php else : ?>
+						<p style="color: #92400e;"><?php esc_html_e( 'Bank transfer details not configured. Please contact support or choose another payment method.', 'conf-manager' ); ?></p>
+					<?php endif; ?>
 					<div class="conf-form-group" style="margin-top: 15px;">
 						<label><?php esc_html_e( 'Upload Receipt Image', 'conf-manager' ); ?></label>
 						<input type="file" name="bank_receipt" class="conf-input" accept="image/*">

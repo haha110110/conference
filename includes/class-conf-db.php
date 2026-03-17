@@ -37,12 +37,14 @@ class Conf_DB {
 			checkin_status varchar(50) DEFAULT 'unconfirmed',
 			material_status varchar(50) DEFAULT 'not_distributed',
 			refund_status varchar(50) DEFAULT 'none',
+			refund_time datetime DEFAULT NULL,
 			checkin_time datetime DEFAULT NULL,
 			material_time datetime DEFAULT NULL,
 			staff_id bigint(20) DEFAULT NULL,
 			PRIMARY KEY  (id),
 			KEY order_id (order_id),
-			KEY six_digit_code (six_digit_code)
+			KEY six_digit_code (six_digit_code),
+			KEY refund_status (refund_status)
 		) $charset_collate;";
 
 		$sql_transactions = "CREATE TABLE $this->table_transactions (

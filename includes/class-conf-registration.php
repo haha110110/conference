@@ -24,6 +24,9 @@ class Conf_Registration {
 		add_action( 'wp_ajax_nopriv_conf_submit_registration', array( $this, 'handle_registration' ) );
 
 		add_action( 'wp_ajax_conf_update_payment_method', array( $this, 'handle_update_payment_method' ) );
+
+		add_action( 'wp_ajax_conf_wechat_create_order', array( $this, 'handle_wechat_create_order' ) );
+		add_action( 'wp_ajax_conf_wechat_query_order', array( $this, 'handle_wechat_query_order' ) );
 	}
 
 	/**
@@ -114,6 +117,7 @@ class Conf_Registration {
 	public function enqueue_scripts() {
 		wp_enqueue_style( 'conf-styles', CONF_MANAGER_URL . 'assets/css/conference.css', array(), CONF_MANAGER_VERSION );
 		wp_enqueue_script( 'conf-registration', CONF_MANAGER_URL . 'assets/js/registration.js', array( 'jquery' ), CONF_MANAGER_VERSION, true );
+		wp_enqueue_script( 'conf-wechat-pay', CONF_MANAGER_URL . 'assets/js/wechat-pay.js', array( 'jquery' ), CONF_MANAGER_VERSION, true );
 		wp_localize_script( 'conf-registration', 'conf_vars', array(
 			'ajax_url'     => admin_url( 'admin-ajax.php' ),
 			'nonce'        => wp_create_nonce( 'conf_registration_nonce' ),
@@ -225,6 +229,122 @@ class Conf_Registration {
 			'message'  => __( 'Registration successful!', 'conf-manager' ),
 			'order_id' => $order_id,
 		) );
+	}
+
+	/**
+	 * Handle WeChat Pay create order
+	 */
+	public function handle_wechat_create_order() {
+		check_ajax_referer( 'conf_registration_nonce', 'nonce' );
+
+		if ( ! is_user_logged_in() ) {
+			wp_send_json_error( array( 'message' => __( 'You must be logged in.', 'conf-manager' ) ) );
+		}
+
+		$order_id = intval( $_POST['order_id'] );
+		$payment_type = sanitize_text_field( $_POST['payment_type'] );
+
+		$order = get_post( $order_id );
+		if ( ! $order || $order->post_type !== 'conf_order' || $order->post_author != get_current_user_id() ) {
+			wp_send_json_error( array( 'message' => __( 'Order not found.', 'conf-manager' ) ) );
+		}
+
+		$status = get_post_meta( $order_id, 'conf_status', true );
+		if ( $status === 'paid' ) {
+			wp_send_json_error( array( 'message' => __( 'Order is already paid.', 'conf-manager' ) ) );
+		}
+
+		// Check if WeChat Pay SDK is available
+		if ( ! class_exists( 'Conf_WeChat_SDK' ) ) {
+			require_once CONF_MANAGER_PATH . 'includes/class-wechat-pay-sdk.php';
+		}
+
+		$sdk = new Conf_WeChat_SDK();
+
+		if ( ! $sdk->is_configured() ) {
+			wp_send_json_error( array( 'message' => __( 'WeChat Pay is not configured.', 'conf-manager' ) ) );
+		}
+
+		$ticket_price = floatval( get_option( 'conf_ticket_price', 0 ) );
+		$attendees = $this->get_attendees_count( $order_id );
+		$total_amount = intval( $ticket_price * $attendees * 100 );
+
+		if ( $total_amount <= 0 ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid order amount.', 'conf-manager' ) ) );
+		}
+
+		$subject = get_option( 'conf_ticket_name', 'Conference Registration' );
+		$body = sprintf( 'Conference Registration - Order #%d', $order_id );
+
+		$is_mobile = $this->is_mobile_device();
+
+		if ( $payment_type === 'h5' || ( $payment_type !== 'native' && $is_mobile ) ) {
+			$response = $sdk->create_h5_order( $order_id, $total_amount, $subject, $body );
+		} else {
+			$response = $sdk->create_native_order( $order_id, $total_amount, $subject, $body );
+		}
+
+		if ( is_wp_error( $response ) ) {
+			wp_send_json_error( array( 'message' => $response->get_error_message() ) );
+		}
+
+		update_post_meta( $order_id, 'conf_wechat_prepay_id', isset( $response['prepay_id'] ) ? $response['prepay_id'] : '' );
+		update_post_meta( $order_id, 'conf_wechat_code_url', isset( $response['code_url'] ) ? $response['code_url'] : '' );
+		update_post_meta( $order_id, 'conf_wechat_mweb_url', isset( $response['mweb_url'] ) ? $response['mweb_url'] : '' );
+
+		wp_send_json_success( array(
+			'order_id'     => $order_id,
+			'payment_type' => isset( $response['code_url'] ) ? 'native' : 'h5',
+			'code_url'     => isset( $response['code_url'] ) ? $response['code_url'] : '',
+			'mweb_url'     => isset( $response['mweb_url'] ) ? $response['mweb_url'] : '',
+			'prepay_id'    => isset( $response['prepay_id'] ) ? $response['prepay_id'] : '',
+		) );
+	}
+
+	/**
+	 * Handle WeChat Pay query order
+	 */
+	public function handle_wechat_query_order() {
+		check_ajax_referer( 'conf_registration_nonce', 'nonce' );
+
+		if ( ! is_user_logged_in() ) {
+			wp_send_json_error( array( 'message' => __( 'You must be logged in.', 'conf-manager' ) ) );
+		}
+
+		$order_id = intval( $_GET['order_id'] );
+
+		$order = get_post( $order_id );
+		if ( ! $order || $order->post_type !== 'conf_order' || $order->post_author != get_current_user_id() ) {
+			wp_send_json_error( array( 'message' => __( 'Order not found.', 'conf-manager' ) ) );
+		}
+
+		$status = get_post_meta( $order_id, 'conf_status', true );
+
+		wp_send_json_success( array(
+			'order_id' => $order_id,
+			'status'   => $status,
+			'paid'     => $status === 'paid',
+		) );
+	}
+
+	private function get_attendees_count( $order_id ) {
+		global $wpdb;
+		$table = $wpdb->prefix . 'conf_attendees';
+		$count = $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM $table WHERE order_id = %d", $order_id ) );
+		return intval( $count );
+	}
+
+	private function is_mobile_device() {
+		$user_agent = isset( $_SERVER['HTTP_USER_AGENT'] ) ? $_SERVER['HTTP_USER_AGENT'] : '';
+		$mobile_agents = array( 'mobile', 'android', 'iphone', 'ipad', 'ipod', 'windows phone', 'micromessenger' );
+		
+		foreach ( $mobile_agents as $agent ) {
+			if ( stripos( $user_agent, $agent ) !== false ) {
+				return true;
+			}
+		}
+		
+		return false;
 	}
 
 	/**
