@@ -13,7 +13,7 @@ mkdir -p "$TEMP_DIR/$PLUGIN_NAME"
 
 # List of files/folders to include
 # Note: We exclude git files, docs, and build scripts themselves
-rsync -av --progress . "$TEMP_DIR/$PLUGIN_NAME" --exclude ".git" --exclude ".gemini" --exclude "docs" --exclude "build.sh" --exclude "dist" --exclude "README.md"
+rsync -av --progress . "$TEMP_DIR/$PLUGIN_NAME" --exclude ".git" --exclude ".gemini" --exclude "docs" --exclude "build.sh" --exclude "dist" --exclude "README.md" --exclude ".DS_Store"
 
 # Navigate to dist and zip
 cd "$TEMP_DIR"
