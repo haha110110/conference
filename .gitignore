@@ -2,3 +2,5 @@
 gha-creds-*.json
 .github/
 docs/
+build.sh
+conference-manager-*.zip
