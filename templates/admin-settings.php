@@ -56,14 +56,42 @@ if ( ! defined( 'ABSPATH' ) ) {
 		</table>
 
 		<hr>
+		<h2><?php echo esc_html__( 'Ticket Settings', 'conf-manager' ); ?></h2>
 		<table class="form-table">
 			<tr>
-				<th scope="row"><?php echo esc_html__( 'Ticket Name', 'conf-manager' ); ?></th>
-				<td><input type="text" name="conf_ticket_name" value="<?php echo esc_attr( get_option( 'conf_ticket_name' ) ); ?>" class="regular-text"></td>
+				<th scope="row"><?php echo esc_html__( 'Ticket Types', 'conf-manager' ); ?></th>
+				<td>
+					<textarea name="conf_tickets_raw" rows="5" class="large-text code" placeholder="Early Bird|800|Limited Offer&#10;Standard|1200|Popular Choice"><?php echo esc_textarea( get_option( 'conf_tickets_raw', "Standard|1200|Full Access" ) ); ?></textarea>
+					<p class="description"><?php echo esc_html__( 'Format: Name|Price|Description (one per line). Example: Early Bird|800|Limited Offer', 'conf-manager' ); ?></p>
+				</td>
+			</tr>
+		</table>
+
+		<hr>
+		<h2><?php echo esc_html__( 'Group Discount Settings', 'conf-manager' ); ?></h2>
+		<table class="form-table">
+			<tr>
+				<th scope="row"><?php echo esc_html__( 'Enable Group Discount?', 'conf-manager' ); ?></th>
+				<td>
+					<label>
+						<input type="checkbox" name="conf_discount_enabled" value="1" <?php checked( get_option( 'conf_discount_enabled', '0' ), '1' ); ?>>
+						<?php echo esc_html__( 'Yes, enable group discounts.', 'conf-manager' ); ?>
+					</label>
+				</td>
 			</tr>
 			<tr>
-				<th scope="row"><?php echo esc_html__( 'Ticket Price (CNY)', 'conf-manager' ); ?></th>
-				<td><input type="number" step="0.01" name="conf_ticket_price" value="<?php echo esc_attr( get_option( 'conf_ticket_price' ) ); ?>" class="regular-text"></td>
+				<th scope="row"><?php echo esc_html__( 'Minimum Attendees', 'conf-manager' ); ?></th>
+				<td>
+					<input type="number" step="1" min="2" name="conf_discount_threshold" value="<?php echo esc_attr( get_option( 'conf_discount_threshold', '3' ) ); ?>" class="small-text">
+					<p class="description"><?php echo esc_html__( 'How many attendees are required to trigger the discount? (e.g. 3)', 'conf-manager' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php echo esc_html__( 'Discount Percentage (%)', 'conf-manager' ); ?></th>
+				<td>
+					<input type="number" step="1" min="1" max="100" name="conf_discount_percentage" value="<?php echo esc_attr( get_option( 'conf_discount_percentage', '15' ) ); ?>" class="small-text"> %
+					<p class="description"><?php echo esc_html__( 'Discount amount in percentage. (e.g. 15 for 15%)', 'conf-manager' ); ?></p>
+				</td>
 			</tr>
 		</table>
 

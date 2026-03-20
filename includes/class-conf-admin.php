@@ -15,6 +15,21 @@ class Conf_Admin {
 	public function __construct() {
 		add_action( 'admin_menu', array( $this, 'add_menu' ) );
 		add_action( 'admin_init', array( $this, 'register_settings' ) );
+		add_action( 'admin_init', array( $this, 'restrict_admin_access' ) );
+	}
+
+	/**
+	 * Restrict admin access for regular users
+	 */
+	public function restrict_admin_access() {
+		if ( wp_doing_ajax() ) {
+			return;
+		}
+
+		if ( ! current_user_can( 'edit_posts' ) && ! current_user_can( 'manage_options' ) ) {
+			wp_safe_redirect( home_url() );
+			exit;
+		}
 	}
 
 	/**
@@ -106,8 +121,6 @@ class Conf_Admin {
 			$filter_status 
 		) );
 
-		$ticket_price = floatval( get_option( 'conf_ticket_price', 0 ) );
-
 		include CONF_MANAGER_PATH . 'templates/admin-refunds.php';
 	}
 
@@ -168,7 +181,6 @@ class Conf_Admin {
 		$pending_orders = get_posts( $args );
 
 		global $wpdb;
-		$ticket_price = floatval( get_option( 'conf_ticket_price', 0 ) );
 		$table_attendees = $wpdb->prefix . 'conf_attendees';
 		$total_pending = count( $pending_orders );
 
@@ -187,8 +199,10 @@ class Conf_Admin {
 		register_setting( 'conf_settings_group', 'conf_wechat_key_path' );
 
 		// Ticket Settings
-		register_setting( 'conf_settings_group', 'conf_ticket_name' );
-		register_setting( 'conf_settings_group', 'conf_ticket_price' );
+		register_setting( 'conf_settings_group', 'conf_tickets_raw' ); // e.g. "Standard|1200\nVIP|2500"
+		register_setting( 'conf_settings_group', 'conf_discount_enabled' );
+		register_setting( 'conf_settings_group', 'conf_discount_threshold' );
+		register_setting( 'conf_settings_group', 'conf_discount_percentage' );
 
 		// Language Settings
 		register_setting( 'conf_settings_group', 'conf_default_language' );

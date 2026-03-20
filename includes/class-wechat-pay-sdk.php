@@ -25,7 +25,7 @@ class Conf_WeChat_SDK {
 			'api_key'     => get_option( 'conf_wechat_key' ),
 			'cert_path'   => CONF_MANAGER_PATH . get_option( 'conf_wechat_cert_path' ),
 			'key_path'    => CONF_MANAGER_PATH . get_option( 'conf_wechat_key_path' ),
-			'notify_url'  => rest_url( 'conf-manager/v1/wechat-callback' ),
+			// notify_url is resolved dynamically in payment methods
 		);
 	}
 
@@ -52,7 +52,7 @@ class Conf_WeChat_SDK {
 			$pay_data->setSubject( $subject );
 			$pay_data->setOrderNo( (string) $order_id );
 			$pay_data->setAmount( $amount / 100 ); // 元转分
-			$pay_data->setCallbackUrl( $this->config['notify_url'] );
+			$pay_data->setCallbackUrl( rest_url( 'conf-manager/v1/wechat-callback' ) );
 			
 			$response = $client->pay( \Payment\Client::WX_CHANNEL_NATIVE, $pay_data );
 			
@@ -77,7 +77,7 @@ class Conf_WeChat_SDK {
 			$pay_data->setSubject( $subject );
 			$pay_data->setOrderNo( (string) $order_id );
 			$pay_data->setAmount( $amount / 100 );
-			$pay_data->setCallbackUrl( $this->config['notify_url'] );
+			$pay_data->setCallbackUrl( rest_url( 'conf-manager/v1/wechat-callback' ) );
 			$pay_data->setParameter( 'trade_type', $trade_type );
 			$pay_data->setParameter( 'scene_info', json_encode( array(
 				'h5_info' => array(

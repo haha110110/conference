@@ -5,3 +5,4 @@ docs/
 build.sh
 conference-manager-*.zip
 GEMINI.md
+/ui-prototypes/*

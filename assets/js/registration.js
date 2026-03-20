@@ -1,239 +1,263 @@
-jQuery(document).ready(function($) {
-    let attendeeIndex = 1;
+/**
+ * Conference Registration App Logic
+ */
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('conf-registration-form');
+    if (!form) return;
 
-    // Add Attendee
-    $('#add-attendee').on('click', function() {
-        const index = attendeeIndex;
-        const compReq = conf_vars.company_req == '1' ? 'required' : '';
-        const compAst = conf_vars.company_req == '1' ? ' *' : '';
-        const jobReq = conf_vars.jobtitle_req == '1' ? 'required' : '';
-        const jobAst = conf_vars.jobtitle_req == '1' ? ' *' : '';
+    let currentStep = 'step-1';
+    let attendeeCount = 1;
 
-        const attendeeTemplate = `
-            <div class="attendee-card" data-index="${index}">
-                <span class="remove-attendee" role="button" aria-label="Remove attendee">&times;</span>
-                <h3>Attendee ${index + 1}</h3>
-                <div class="conf-form-group">
-                    <label>Full Name *</label>
-                    <input type="text" name="attendees[${index}][name]" class="conf-input" required pattern="^[\u4e00-\u9fa5a-zA-Z\s]{2,20}$" title="Please enter a valid name (2-20 characters)">
-                </div>
-                <div class="conf-form-group">
-                    <label>Phone Number *</label>
-                    <input type="tel" name="attendees[${index}][phone]" class="conf-input" required pattern="1[3-9]\d{9}" title="Please enter a valid Chinese mobile number">
-                </div>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-                    <div class="conf-form-group">
-                        <label>Company${compAst}</label>
-                        <input type="text" name="attendees[${index}][company]" class="conf-input" ${compReq}>
-                    </div>
-                    <div class="conf-form-group">
-                        <label>Job Title${jobAst}</label>
-                        <input type="text" name="attendees[${index}][job_title]" class="conf-input" ${jobReq}>
-                    </div>
-                </div>
-            </div>`;
-        $('#attendees-list').append(attendeeTemplate);
-        attendeeIndex++;
-    });
+    // --- Navigation ---
+    const showStep = (stepId) => {
+        document.querySelectorAll('.step-section').forEach(el => el.classList.remove('active'));
+        document.getElementById(stepId).classList.add('active');
+        currentStep = stepId;
 
-    // Remove Attendee
-    $(document).on('click', '.remove-attendee', function() {
-        $(this).closest('.attendee-card').remove();
-    });
+        // Auto-scroll to top
+        window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    // Step Transitions
-    $('.next-step').on('click', function() {
-        const nextStep = $(this).data('next');
-        const currentStep = nextStep - 1;
-
-        // Simple validation for Step 1
-        if (currentStep === 1) {
-            let valid = true;
-            $('#step-1 input[required]').each(function() {
-                if (!$(this).val()) {
-                    $(this).css('border-color', '#dc2626');
-                    valid = false;
-                } else {
-                    $(this).css('border-color', '#d1d5db');
-                }
-            });
-            // Validate phone pattern
-            $('#step-1 input[pattern]').each(function() {
-                const pattern = new RegExp($(this).attr('pattern'));
-                if ($(this).val() && !pattern.test($(this).val())) {
-                    $(this).css('border-color', '#dc2626');
-                    valid = false;
-                    alert('Please enter a valid ' + $(this).prev('label').text());
-                }
-            });
-            if (!valid) return;
+        if (stepId === 'step-3') {
+            updateSummary();
         }
+    };
 
-        // Ticket selection validation for Step 2
-        if (currentStep === 2) {
-            if (!$('.ticket-card.selected').length) {
-                alert('Please select a ticket type');
-                return;
+    document.querySelectorAll('.btn-next, .btn-prev').forEach(btn => {
+        btn.addEventListener('click', function() {
+            // Validation before proceeding
+            if (this.classList.contains('btn-next')) {
+                const currentSection = document.getElementById(currentStep);
+                const inputs = currentSection.querySelectorAll('input[required]');
+                let isValid = true;
+                inputs.forEach(input => {
+                    if (!input.value.trim()) {
+                        isValid = false;
+                        input.style.borderBottomColor = '#ba1a1a'; // error color
+                    } else {
+                        input.style.borderBottomColor = ''; // reset
+                    }
+                });
+
+                if (!isValid) {
+                    alert('Please fill out all required fields.');
+                    return;
+                }
             }
-        }
 
-        // Prepare Review Data (Step 2 -> Step 3)
-        if (nextStep === 3) {
-            populateReview();
-        }
-
-        goToStep(nextStep);
+            const target = this.getAttribute('data-target');
+            showStep(target);
+        });
     });
 
-    $('.prev-step').on('click', function() {
-        goToStep($(this).data('prev'));
-    });
+    // --- Attendee Management ---
+    const btnAddAttendee = document.getElementById('btn-add-attendee');
+    const attendeesContainer = document.getElementById('attendees-container');
+    const template = document.getElementById('attendee-template');
 
-    function goToStep(step) {
-        $('.registration-step').hide();
-        $(`#step-${step}`).fadeIn();
+    if (btnAddAttendee && template) {
+        btnAddAttendee.addEventListener('click', () => {
+            const clone = template.content.cloneNode(true);
+            const wrapper = clone.querySelector('.attendee-item');
+            
+            // Update indexes
+            wrapper.innerHTML = wrapper.innerHTML.replace(/{index}/g, attendeeCount);
+            
+            // Update display number
+            wrapper.querySelector('.attendee-number').textContent = attendeeCount + 1;
+            
+            attendeesContainer.appendChild(clone);
+            attendeeCount++;
+            
+            // Re-attach remove listeners
+            attachRemoveListeners();
+        });
+    }
+
+    const attachRemoveListeners = () => {
+        document.querySelectorAll('.btn-remove-attendee').forEach(btn => {
+            btn.onclick = function() {
+                this.closest('.attendee-item').remove();
+                attendeeCount--;
+                // Re-index displayed numbers (optional, but good for UX)
+                let num = 1;
+                document.querySelectorAll('.attendee-number').forEach(badge => {
+                    badge.textContent = num++;
+                });
+                
+                // Re-index names to ensure continuous array for PHP
+                let idx = 0;
+                document.querySelectorAll('.attendee-item').forEach(item => {
+                    item.querySelectorAll('input').forEach(input => {
+                        input.name = input.name.replace(/attendees\[\d+\]/, `attendees[${idx}]`);
+                    });
+                    idx++;
+                });
+            };
+        });
+    };
+
+    // --- Summary Update ---
+    const updateSummary = () => {
+        // Count attendees
+        const count = document.querySelectorAll('.attendee-item').length;
         
-        // Update Stepper
-        $('.conf-step').removeClass('active completed');
-        $(`.conf-step[data-step="${step}"]`).addClass('active');
-        $(`.conf-step`).each(function() {
-            if ($(this).data('step') < step) {
-                $(this).addClass('completed');
-            }
-        });
-    }
+        // Get selected tier
+        const selectedTierInput = document.querySelector('input[name="ticket_tier"]:checked');
+        const tierName = selectedTierInput ? selectedTierInput.value : 'Standard';
+        const tierPrice = selectedTierInput ? parseFloat(selectedTierInput.getAttribute('data-price')) : 0;
 
-    function populateReview() {
-        const $tbody = $('#review-table-body');
-        $tbody.empty();
+        const total = count * tierPrice;
 
-        const attendees = [];
-        $('.attendee-card').each(function() {
-            const name = $(this).find('input[name*="[name]"]').val();
-            if (name) attendees.push(name);
-        });
+        document.getElementById('summary-tier-name').textContent = tierName;
+        document.getElementById('summary-attendee-count').textContent = `${count} Attendee(s)`;
+        document.getElementById('summary-total-price').textContent = `¥${total.toFixed(2)}`;
+    };
 
-        const ticketName = $('.ticket-card.selected h3').text();
-        const ticketPrice = parseFloat($('.ticket-card.selected').data('price'));
-        const total = attendees.length * ticketPrice;
-
-        attendees.forEach(name => {
-            $tbody.append(`
-                <tr>
-                    <td>${name} - ${ticketName}</td>
-                    <td style="text-align: right;">¥${ticketPrice.toFixed(2)}</td>
-                </tr>
-            `);
-        });
-
-        $('#review-total-price').text(`¥${total.toFixed(2)}`);
-    }
-
-    // Payment Method Toggle
-    $(document).on('change', 'input[name="payment_method"]', function() {
-        const formId = $(this).closest('form').attr('id');
-        if ($(this).val() === 'bank') {
-            if (formId === 'conf-registration-form') {
-                $('#bank-transfer-instructions').slideDown();
+    // --- Payment Methods Toggle ---
+    const paymentRadios = document.querySelectorAll('.payment-radio');
+    const bankDetailsWrap = document.getElementById('bank-details-wrap');
+    
+    paymentRadios.forEach(radio => {
+        radio.addEventListener('change', function() {
+            if (this.value === 'bank') {
+                bankDetailsWrap.classList.remove('hidden');
             } else {
-                $(this).closest('form').find('#bank-transfer-instructions').slideDown();
-            }
-        } else {
-            if (formId === 'conf-registration-form') {
-                $('#bank-transfer-instructions').slideUp();
-            } else {
-                $(this).closest('form').find('#bank-transfer-instructions').slideUp();
-            }
-        }
-    });
-
-    // Update Payment Method Form (Order Details)
-    $('#conf-update-payment-form').on('submit', function(e) {
-        e.preventDefault();
-        const $form = $(this);
-        const $submitBtn = $form.find('button[type="submit"]');
-        const $msgContainer = $('#update-payment-message');
-
-        $submitBtn.prop('disabled', true).text('Updating...');
-        $msgContainer.html('');
-
-        const formData = new FormData(this);
-        formData.append('action', 'conf_update_payment_method');
-        formData.append('nonce', conf_vars.nonce);
-
-        $.ajax({
-            url: conf_vars.ajax_url,
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            beforeSend: function() {
-                $submitBtn.append(' <span class="conf-loading">⏳</span>');
-            },
-            success: function(response) {
-                if (response.success) {
-                    $msgContainer.html('<div style="color: #166534; background: #dcfce7; padding: 15px; border-radius: 8px;">' + response.data.message + '</div>');
-                    setTimeout(() => {
-                        location.reload();
-                    }, 1500);
-                } else {
-                    $msgContainer.html('<div style="color: #991b1b; background: #fee2e2; padding: 15px; border-radius: 8px;">' + (response.data.message || 'An error occurred') + '</div>');
-                    $submitBtn.prop('disabled', false).text('Update Payment Method');
-                }
-            },
-            error: function(xhr) {
-                let errorMsg = 'Something went wrong.';
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    errorMsg = xhr.responseJSON.message;
-                }
-                $msgContainer.html('<div style="color: #991b1b; background: #fee2e2; padding: 15px; border-radius: 8px;">' + errorMsg + '</div>');
-                $submitBtn.prop('disabled', false).text('Update Payment Method');
+                bankDetailsWrap.classList.add('hidden');
             }
         });
     });
 
-    // Form Submission (Registration)
-    $('#conf-registration-form').on('submit', function(e) {
+    // File upload preview
+    const receiptInput = document.getElementById('bank_receipt');
+    if (receiptInput) {
+        receiptInput.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                document.getElementById('file-name-display').textContent = this.files[0].name;
+            } else {
+                document.getElementById('file-name-display').textContent = 'JPG, PNG, PDF (Max 5MB)';
+            }
+        });
+    }
+
+    // --- Form Submission ---
+    form.addEventListener('submit', function(e) {
         e.preventDefault();
-        const $form = $(this);
-        const $submitBtn = $('#submit-registration');
-        const $msgContainer = $('#registration-message');
+        
+        const btnSubmit = document.getElementById('btn-submit');
+        const errorMsg = document.getElementById('form-error-message');
+        
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = `<span class="material-symbols-outlined animate-spin">refresh</span> Processing...`;
+        errorMsg.classList.add('hidden');
 
-        $submitBtn.prop('disabled', true).text('Processing...');
-        $msgContainer.html('');
-
-        const formData = new FormData(this);
+        const formData = new FormData(form);
         formData.append('action', 'conf_submit_registration');
         formData.append('nonce', conf_vars.nonce);
 
-        $.ajax({
-            url: conf_vars.ajax_url,
-            type: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            beforeSend: function() {
-                $submitBtn.append(' <span class="conf-loading">⏳</span>');
-            },
-            success: function(response) {
-                if (response.success) {
-                    $msgContainer.html('<div style="color: #166534; background: #dcfce7; padding: 15px; border-radius: 8px;">' + response.data.message + '</div>');
-                    setTimeout(() => {
-                        window.location.href = window.location.href.split('?')[0] + '?action=order&id=' + response.data.order_id;
-                    }, 1500);
+        fetch(conf_vars.ajax_url, {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const orderId = data.data.order_id;
+                const sixDigitCode = data.data.six_digit_code;
+                const paymentMethod = formData.get('payment_method');
+                
+                if (paymentMethod === 'wechat') {
+                    // Trigger WeChat Pay
+                    initWeChatPay(orderId, sixDigitCode);
                 } else {
-                    $msgContainer.html('<div style="color: #991b1b; background: #fee2e2; padding: 15px; border-radius: 8px;">' + (response.data.message || 'An error occurred') + '</div>');
-                    $submitBtn.prop('disabled', false).text('Complete Registration');
+                    // Show success directly for Bank / Onsite
+                    renderSuccessPage(orderId, paymentMethod, sixDigitCode);
                 }
-            },
-            error: function(xhr) {
-                let errorMsg = 'Something went wrong. Please try again.';
-                if (xhr.responseJSON && xhr.responseJSON.message) {
-                    errorMsg = xhr.responseJSON.message;
-                }
-                $msgContainer.html('<div style="color: #991b1b; background: #fee2e2; padding: 15px; border-radius: 8px;">' + errorMsg + '</div>');
-                $submitBtn.prop('disabled', false).text('Complete Registration');
+            } else {
+                showError(data.data.message || 'Registration failed.');
             }
+        })
+        .catch(err => {
+            showError('Network error occurred. Please try again.');
         });
     });
+
+    const showError = (msg) => {
+        const btnSubmit = document.getElementById('btn-submit');
+        const errorMsg = document.getElementById('form-error-message');
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = `Confirm & Pay <span class="material-symbols-outlined text-lg">arrow_forward</span>`;
+        errorMsg.textContent = msg;
+        errorMsg.classList.remove('hidden');
+    };
+
+    const initWeChatPay = (orderId, sixDigitCode) => {
+        const formData = new FormData();
+        formData.append('action', 'conf_wechat_create_order');
+        formData.append('nonce', conf_vars.nonce);
+        formData.append('order_id', orderId);
+        
+        // Simple logic for h5 vs native based on user agent
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        formData.append('payment_type', isMobile ? 'h5' : 'native');
+
+        fetch(conf_vars.ajax_url, {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                if (data.data.payment_type === 'h5' && data.data.mweb_url) {
+                    // Redirect to WeChat app
+                    window.location.href = data.data.mweb_url;
+                } else if (data.data.payment_type === 'native' && data.data.code_url) {
+                    // We should show a QR code for native. 
+                    // For the sake of the UX, let's show an alert and render success, but ideally we show a QR modal here.
+                    alert("A PC QR Code has been generated. (Integration required to show QR code visually).");
+                    renderSuccessPage(orderId, 'wechat_native', sixDigitCode);
+                } else {
+                    renderSuccessPage(orderId, 'wechat_success', sixDigitCode); // fallback
+                }
+            } else {
+                showError(data.data.message || 'Failed to initialize WeChat Pay.');
+            }
+        })
+        .catch(err => {
+            showError('WeChat Pay network error.');
+        });
+    };
+
+    const renderSuccessPage = (orderId, paymentMethod, sixDigitCode) => {
+        showStep('step-success');
+        
+        document.getElementById('success-order-id').textContent = `#SUM24-${orderId}`;
+        
+        const codeEl = document.getElementById('success-six-digit-code');
+        if (codeEl && sixDigitCode) {
+            codeEl.textContent = sixDigitCode;
+        }
+        
+        // Gather attendee names from inputs to display them vertically
+        const attendeeNames = [];
+        document.querySelectorAll('input[name^="attendees"][name$="[name]"]').forEach(input => {
+            if(input.value.trim() !== '') attendeeNames.push(input.value.trim());
+        });
+
+        const listContainer = document.getElementById('success-attendee-list');
+        listContainer.innerHTML = '';
+        attendeeNames.forEach(name => {
+            const li = document.createElement('li');
+            li.textContent = name;
+            listContainer.appendChild(li);
+        });
+
+        const subtitle = document.getElementById('success-subtitle');
+        if (paymentMethod === 'bank') {
+            subtitle.textContent = "Your receipt is under review. You will receive an email once confirmed.";
+        } else if (paymentMethod === 'onsite') {
+            subtitle.textContent = "Please complete the payment at the registration desk on the day of the event.";
+        } else {
+            subtitle.textContent = "Payment successful. Your seats are reserved.";
+        }
+    };
 });

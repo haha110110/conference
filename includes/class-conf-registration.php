@@ -14,6 +14,7 @@ class Conf_Registration {
 	 */
 	public function __construct() {
 		add_shortcode( 'conf_registration', array( $this, 'render_form' ) );
+		add_shortcode( 'conf_registration_spa', array( $this, 'render_spa_app' ) );
 		add_action( 'wp_enqueue_scripts', array( $this, 'enqueue_scripts' ) );
 		add_action( 'show_user_profile', array( $this, 'add_profile_fields' ) );
 		add_action( 'edit_user_profile', array( $this, 'add_profile_fields' ) );
@@ -155,6 +156,21 @@ class Conf_Registration {
 	}
 
 	/**
+	 * Render the new SPA registration app
+	 */
+	public function render_spa_app() {
+		if ( ! is_user_logged_in() ) {
+			ob_start();
+			include CONF_MANAGER_PATH . 'templates/login-register.php';
+			return ob_get_clean();
+		}
+
+		ob_start();
+		include CONF_MANAGER_PATH . 'templates/frontend-registration-app.php';
+		return ob_get_clean();
+	}
+
+	/**
 	 * Handle form submission
 	 */
 	public function handle_registration() {
@@ -166,6 +182,10 @@ class Conf_Registration {
 
 		$attendees = isset( $_POST['attendees'] ) ? $_POST['attendees'] : array();
 		$payment_method = sanitize_text_field( $_POST['payment_method'] );
+		$ticket_tier = isset( $_POST['ticket_tier'] ) ? sanitize_text_field( $_POST['ticket_tier'] ) : '';
+		$contact_name = isset( $_POST['contact_name'] ) ? sanitize_text_field( $_POST['contact_name'] ) : '';
+		$contact_phone = isset( $_POST['contact_phone'] ) ? sanitize_text_field( $_POST['contact_phone'] ) : '';
+		$contact_email = isset( $_POST['contact_email'] ) ? sanitize_email( $_POST['contact_email'] ) : '';
 
 		if ( empty( $attendees ) ) {
 			wp_send_json_error( array( 'message' => __( 'Please add at least one attendee.', 'conf-manager' ) ) );
@@ -190,6 +210,10 @@ class Conf_Registration {
 		update_post_meta( $order_id, 'conf_payment_method', $payment_method );
 		update_post_meta( $order_id, 'conf_status', ( $payment_method === 'onsite' ? 'unpaid' : 'pending' ) );
 		update_post_meta( $order_id, 'conf_lang', get_locale() );
+		update_post_meta( $order_id, 'conf_ticket_tier', $ticket_tier );
+		update_post_meta( $order_id, 'conf_contact_name', $contact_name );
+		update_post_meta( $order_id, 'conf_contact_phone', $contact_phone );
+		update_post_meta( $order_id, 'conf_contact_email', $contact_email );
 
 		// Handle bank receipt upload
 		if ( $payment_method === 'bank' && ! empty( $_FILES['bank_receipt']['name'] ) ) {
@@ -205,8 +229,9 @@ class Conf_Registration {
 		global $wpdb;
 		$table_attendees = $wpdb->prefix . 'conf_attendees';
 
+		$six_digit_code = $this->generate_unique_code();
+
 		foreach ( $attendees as $attendee ) {
-			$six_digit_code = $this->generate_unique_code();
 			$wpdb->insert(
 				$table_attendees,
 				array(
@@ -228,6 +253,7 @@ class Conf_Registration {
 		wp_send_json_success( array(
 			'message'  => __( 'Registration successful!', 'conf-manager' ),
 			'order_id' => $order_id,
+			'six_digit_code' => $six_digit_code,
 		) );
 	}
 
@@ -265,7 +291,24 @@ class Conf_Registration {
 			wp_send_json_error( array( 'message' => __( 'WeChat Pay is not configured.', 'conf-manager' ) ) );
 		}
 
-		$ticket_price = floatval( get_option( 'conf_ticket_price', 0 ) );
+		$ticket_tier = get_post_meta( $order_id, 'conf_ticket_tier', true );
+		$ticket_price = 0;
+		$tickets_raw = get_option( 'conf_tickets_raw', '' );
+		if ( ! empty( $tickets_raw ) ) {
+			$lines = explode( "\n", $tickets_raw );
+			foreach ( $lines as $line ) {
+				$parts = explode( '|', trim( $line ) );
+				if ( count( $parts ) >= 2 && trim( $parts[0] ) === $ticket_tier ) {
+					$ticket_price = floatval( trim( $parts[1] ) );
+					break;
+				}
+			}
+		}
+
+		if ( $ticket_price == 0 ) {
+			$ticket_price = floatval( get_option( 'conf_ticket_price', 0 ) );
+		}
+
 		$attendees = $this->get_attendees_count( $order_id );
 		$total_amount = intval( $ticket_price * $attendees * 100 );
 
