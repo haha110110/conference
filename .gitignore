@@ -4,3 +4,4 @@ gha-creds-*.json
 docs/
 build.sh
 conference-manager-*.zip
+GEMINI.md
