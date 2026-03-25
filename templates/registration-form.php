@@ -328,22 +328,9 @@ tailwind.config = {
                         </div>
 
                         <!-- Bank Details Dropdown -->
-                        <div id="bank-details-wrap" class="hidden mt-4 bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/20 shadow-sm">
-                            <h3 class="font-bold text-lg mb-4">Bank Account Info</h3>
-                            <p class="text-sm text-on-surface-variant mb-4">Please transfer the exact amount to the following account:</p>
-                            <div class="space-y-2 mb-6">
-                                <p class="text-sm"><span class="text-on-surface-variant uppercase text-xs tracking-wider">Account Name:</span> <br><strong><?php echo esc_html( get_option('conf_bank_acc_name') ); ?></strong></p>
-                                <p class="text-sm"><span class="text-on-surface-variant uppercase text-xs tracking-wider">Bank Name:</span> <br><strong><?php echo esc_html( get_option('conf_bank_name') ); ?></strong></p>
-                                <p class="text-sm"><span class="text-on-surface-variant uppercase text-xs tracking-wider">Account Number:</span> <br><strong class="font-mono"><?php echo esc_html( get_option('conf_bank_acc_no') ); ?></strong></p>
-                            </div>
-                            
-                            <!-- File Upload for Receipt -->
-                            <div class="relative flex flex-col items-center justify-center border-2 border-dashed border-outline-variant/40 rounded-xl p-6 bg-surface-container-low hover:bg-surface-container-highest transition-colors cursor-pointer">
-                                <input type="file" name="bank_receipt" id="bank_receipt" class="absolute inset-0 opacity-0 cursor-pointer z-10" accept="image/*,application/pdf" />
-                                <span class="material-symbols-outlined text-primary text-3xl mb-2">cloud_upload</span>
-                                <p class="text-on-surface font-semibold text-sm">Upload Transfer Receipt</p>
-                                <p class="text-on-surface-variant text-xs mt-1" id="file-name-display">JPG, PNG, PDF (Max 5MB)</p>
-                            </div>
+                        <div id="bank-details-wrap" class="hidden mt-4 bg-surface-container-lowest p-6 rounded-xl border border-outline-variant/20 shadow-sm text-center">
+                            <span class="material-symbols-outlined text-primary text-3xl mb-2">info</span>
+                            <p class="text-sm text-on-surface-variant">You will be asked to upload the transfer receipt on the next step after confirming your order.</p>
                         </div>
                     </section>
 
@@ -359,7 +346,79 @@ tailwind.config = {
                 </div>
             </div>
 
-            <!-- STEP 4: Success Screen -->
+            <!-- STEP 4: Bank Transfer -->
+            <div class="step-section" id="step-bank-transfer">
+                <div class="mb-10">
+                    <div class="flex justify-between items-end mb-2">
+                        <p class="text-[0.75rem] font-medium tracking-[0.05em] text-on-surface-variant uppercase">Payment</p>
+                        <p class="text-[0.75rem] font-bold text-tertiary">Bank Transfer</p>
+                    </div>
+                    <div class="h-1 w-full bg-outline-variant/20 rounded-full overflow-hidden">
+                        <div class="h-full bg-tertiary w-full"></div>
+                    </div>
+                </div>
+
+                <div class="mb-8 text-center">
+                    <h2 class="text-xs uppercase tracking-wider text-on-surface-variant mb-2">Amount to Transfer 汇款金额</h2>
+                    <div class="text-4xl font-extrabold text-primary">
+                        <span class="text-2xl mr-1">￥</span><span id="bank-transfer-amount">0.00</span>
+                    </div>
+                    <p class="text-sm text-on-surface-variant mt-2">Please transfer exactly this amount.</p>
+                </div>
+                
+                <div class="bg-surface-container-low rounded-xl p-6 border border-outline-variant/20 mb-8">
+                    <h3 class="font-bold text-on-surface mb-4">Bank Account Info 银行账户信息</h3>
+                    <div class="space-y-3 text-sm">
+                        <div><span class="text-on-surface-variant block text-xs">Account Name 账户名称</span> <span class="font-bold text-on-surface text-lg"><?php echo esc_html( get_option('conf_bank_acc_name') ); ?></span></div>
+                        <div><span class="text-on-surface-variant block text-xs mt-3">Bank 开户银行</span> <span class="font-medium text-on-surface"><?php echo esc_html( get_option('conf_bank_name') ); ?></span></div>
+                        <div><span class="text-on-surface-variant block text-xs mt-3">Account No. 账号</span> <span class="font-mono font-bold text-on-surface text-lg tracking-wider"><?php echo esc_html( get_option('conf_bank_acc_no') ); ?></span></div>
+                        <div class="mt-4 p-4 bg-primary-fixed text-on-primary-container rounded-lg text-sm flex items-start gap-2 border border-primary/20">
+                            <span class="material-symbols-outlined text-primary text-xl">info</span>
+                            <div>* Please include your Order No. <span class="font-bold" id="bank-transfer-order-id"></span> in the transfer notes/remarks.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-surface-container-lowest border-2 border-dashed border-outline-variant/40 rounded-xl p-10 text-center relative hover:bg-surface-container-low hover:border-primary/40 transition-colors cursor-pointer group">
+                    <input type="file" id="bank_receipt_upload" name="bank_receipt_upload" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" accept="image/jpeg,image/png,application/pdf">
+                    <div class="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                        <span class="material-symbols-outlined text-3xl text-primary">cloud_upload</span>
+                    </div>
+                    <p class="font-bold text-on-surface">Click or drag to upload receipt<br>点击上传汇款凭证</p>
+                    <p class="text-xs text-on-surface-variant mt-2">支持 JPG, PNG, PDF (最大 5MB)</p>
+                    <p id="bank-file-name-display" class="mt-4 text-sm text-primary font-bold hidden"></p>
+                </div>
+
+                <div id="bank-upload-error-message" class="hidden mt-4 bg-error-container text-error p-4 rounded-xl text-sm font-medium"></div>
+
+                <div class="mt-8">
+                    <button type="button" id="btn-submit-receipt" class="w-full bg-gradient-to-r from-primary to-primary-container text-on-primary font-bold py-4 rounded-xl shadow-lg active:scale-95 transition-all disabled:opacity-50 flex justify-center items-center gap-2">
+                        Submit Receipt 提交凭证
+                    </button>
+                </div>
+            </div>
+
+            <!-- STEP 5: Bank Success Screen -->
+            <div class="step-section" id="step-bank-success">
+                <section class="flex flex-col items-center text-center mb-12 pt-8">
+                    <div class="w-20 h-20 bg-primary/10 text-primary rounded-full flex items-center justify-center mb-6 shadow-sm">
+                        <span class="material-symbols-outlined text-5xl font-bold" style="font-variation-settings: 'FILL' 1;">hourglass_empty</span>
+                    </div>
+                    <h1 class="text-[2.5rem] font-extrabold tracking-tight leading-tight text-on-surface mb-2">
+                        Under Review
+                    </h1>
+                    <p class="text-on-surface-variant text-lg">
+                        We have received your receipt and will verify it shortly. 我们已收到您的汇款凭证，将尽快核实。
+                    </p>
+                </section>
+                <div class="flex gap-4 mt-8">
+                    <a href="<?php echo esc_url( remove_query_arg( 'action' ) ); ?>" class="w-full flex items-center justify-center gap-2 bg-surface-container-low text-primary py-4 rounded-xl font-bold hover:bg-surface-container-high transition-colors active:scale-95">
+                        <span class="material-symbols-outlined">home</span> Return Home
+                    </a>
+                </div>
+            </div>
+
+            <!-- STEP 6: Success Screen -->
             <div class="step-section" id="step-success">
                 <section class="flex flex-col items-center text-center mb-12 pt-8">
                     <div class="w-20 h-20 bg-tertiary-fixed text-tertiary rounded-full flex items-center justify-center mb-6 shadow-sm">

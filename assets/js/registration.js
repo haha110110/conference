@@ -128,13 +128,17 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // File upload preview
-    const receiptInput = document.getElementById('bank_receipt');
+    const receiptInput = document.getElementById('bank_receipt_upload');
     if (receiptInput) {
         receiptInput.addEventListener('change', function() {
             if (this.files && this.files[0]) {
-                document.getElementById('file-name-display').textContent = this.files[0].name;
+                const display = document.getElementById('bank-file-name-display');
+                display.textContent = this.files[0].name;
+                display.classList.remove('hidden');
             } else {
-                document.getElementById('file-name-display').textContent = 'JPG, PNG, PDF (Max 5MB)';
+                const display = document.getElementById('bank-file-name-display');
+                display.textContent = '';
+                display.classList.add('hidden');
             }
         });
     }
@@ -168,8 +172,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (paymentMethod === 'wechat') {
                     // Trigger WeChat Pay
                     initWeChatPay(orderId, sixDigitCode);
+                } else if (paymentMethod === 'bank') {
+                    // Show bank transfer details step
+                    const totalStr = document.getElementById('summary-total-price').textContent.replace('¥', '');
+                    document.getElementById('bank-transfer-amount').textContent = totalStr;
+                    document.getElementById('bank-transfer-order-id').textContent = `#SUM24-${orderId}`;
+                    
+                    // Attach orderId to the submit button
+                    const submitReceiptBtn = document.getElementById('btn-submit-receipt');
+                    if (submitReceiptBtn) {
+                        submitReceiptBtn.dataset.orderId = orderId;
+                    }
+                    
+                    showStep('step-bank-transfer');
                 } else {
-                    // Show success directly for Bank / Onsite
+                    // Show success directly for Onsite
                     renderSuccessPage(orderId, paymentMethod, sixDigitCode);
                 }
             } else {
@@ -180,6 +197,53 @@ document.addEventListener('DOMContentLoaded', function() {
             showError('Network error occurred. Please try again.');
         });
     });
+
+    const submitReceiptBtn = document.getElementById('btn-submit-receipt');
+    if (submitReceiptBtn) {
+        submitReceiptBtn.addEventListener('click', function() {
+            const orderId = this.dataset.orderId;
+            const fileInput = document.getElementById('bank_receipt_upload');
+            const errorMsg = document.getElementById('bank-upload-error-message');
+            
+            if (!fileInput.files || fileInput.files.length === 0) {
+                errorMsg.textContent = 'Please select a file to upload.';
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            this.disabled = true;
+            this.innerHTML = `<span class="material-symbols-outlined animate-spin">refresh</span> Uploading...`;
+            errorMsg.classList.add('hidden');
+
+            const formData = new FormData();
+            formData.append('action', 'conf_upload_bank_receipt');
+            formData.append('nonce', conf_vars.nonce);
+            formData.append('order_id', orderId);
+            formData.append('bank_receipt', fileInput.files[0]);
+
+            fetch(conf_vars.ajax_url, {
+                method: 'POST',
+                body: formData
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    showStep('step-bank-success');
+                } else {
+                    this.disabled = false;
+                    this.innerHTML = `Submit Receipt 提交凭证`;
+                    errorMsg.textContent = data.data.message || 'Upload failed.';
+                    errorMsg.classList.remove('hidden');
+                }
+            })
+            .catch(err => {
+                this.disabled = false;
+                this.innerHTML = `Submit Receipt 提交凭证`;
+                errorMsg.textContent = 'Network error occurred. Please try again.';
+                errorMsg.classList.remove('hidden');
+            });
+        });
+    }
 
     const showError = (msg) => {
         const btnSubmit = document.getElementById('btn-submit');

@@ -28,6 +28,50 @@ class Conf_Registration {
 
 		add_action( 'wp_ajax_conf_wechat_create_order', array( $this, 'handle_wechat_create_order' ) );
 		add_action( 'wp_ajax_conf_wechat_query_order', array( $this, 'handle_wechat_query_order' ) );
+		add_action( 'wp_ajax_conf_upload_bank_receipt', array( $this, 'handle_upload_bank_receipt' ) );
+	}
+
+	/**
+	 * Handle bank receipt upload via AJAX
+	 */
+	public function handle_upload_bank_receipt() {
+		check_ajax_referer( 'conf_registration_nonce', 'nonce' );
+
+		if ( ! is_user_logged_in() ) {
+			wp_send_json_error( array( 'message' => __( 'You must be logged in.', 'conf-manager' ) ) );
+		}
+
+		$order_id = isset( $_POST['order_id'] ) ? intval( $_POST['order_id'] ) : 0;
+		if ( ! $order_id ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid order ID.', 'conf-manager' ) ) );
+		}
+
+		$order = get_post( $order_id );
+		if ( ! $order || $order->post_type !== 'conf_order' || intval( $order->post_author ) !== get_current_user_id() ) {
+			wp_send_json_error( array( 'message' => __( 'Invalid order.', 'conf-manager' ) ) );
+		}
+
+		if ( empty( $_FILES['bank_receipt']['name'] ) ) {
+			wp_send_json_error( array( 'message' => __( 'No file uploaded.', 'conf-manager' ) ) );
+		}
+
+		if ( ! function_exists( 'wp_handle_upload' ) ) {
+			require_once ABSPATH . 'wp-admin/includes/file.php';
+		}
+
+		$uploaded_file = wp_handle_upload( $_FILES['bank_receipt'], array( 'test_form' => false ) );
+
+		if ( isset( $uploaded_file['error'] ) ) {
+			wp_send_json_error( array( 'message' => $uploaded_file['error'] ) );
+		}
+
+		if ( isset( $uploaded_file['url'] ) ) {
+			update_post_meta( $order_id, 'conf_bank_receipt_url', $uploaded_file['url'] );
+			
+			wp_send_json_success( array( 'message' => __( 'Receipt uploaded successfully.', 'conf-manager' ), 'url' => $uploaded_file['url'] ) );
+		}
+
+		wp_send_json_error( array( 'message' => __( 'Failed to save uploaded file.', 'conf-manager' ) ) );
 	}
 
 	/**
