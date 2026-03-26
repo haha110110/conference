@@ -4,7 +4,7 @@
 
 /* General Container */
 #conf-registration-container {
-    max-width: 800px;
+    max-width: 100%;
     margin: 40px auto;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
     color: #2c3e50;

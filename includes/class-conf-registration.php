@@ -160,7 +160,6 @@ class Conf_Registration {
 	 * Enqueue frontend scripts
 	 */
 	public function enqueue_scripts() {
-		wp_enqueue_style( 'conf-styles', CONF_MANAGER_URL . 'assets/css/conference.css', array(), CONF_MANAGER_VERSION );
 		wp_enqueue_script( 'conf-registration', CONF_MANAGER_URL . 'assets/js/registration.js', array( 'jquery' ), CONF_MANAGER_VERSION, true );
 		wp_enqueue_script( 'conf-wechat-pay', CONF_MANAGER_URL . 'assets/js/wechat-pay.js', array( 'jquery' ), CONF_MANAGER_VERSION, true );
 		wp_localize_script( 'conf-registration', 'conf_vars', array(

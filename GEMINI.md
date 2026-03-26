@@ -5,25 +5,21 @@ This project is a specialized **WordPress plugin** designed for mobile-first con
 ## 🚀 Project Overview
 
 -   **Primary Goal:** Enable high-efficiency bulk registration and on-site check-in for conferences.
--   **Core Technologies:** PHP (WordPress), JavaScript, Vanilla CSS, REST API, WeChat Pay SDK.
--   **Architecture:**
-    -   **Orders:** Managed via a Custom Post Type (`conf_order`).
-    -   **Attendees:** Managed via a custom database table (`conf_attendees`) linked to orders.
-    -   **Staff Portals:** Standalone, lightweight PHP pages in the `/staff` directory.
-    -   **Payments:** Integrated with WeChat Pay (JSAPI/H5), Bank Transfer, and Pay-on-site.
+- **Core Technologies:** PHP (WordPress), JavaScript, Tailwind CSS, REST API, WeChat Pay SDK.
+- **Architecture:**
+    - **Orders:** Managed via a Custom Post Type (`conf_order`).
+    - **Attendees:** Managed via a custom database table (`conf_attendees`) linked to orders.
+    - **Staff Portals:** Standalone, lightweight PHP pages in the `/staff` directory.
+    - **Payments:** Integrated with WeChat Pay (JSAPI/H5), Bank Transfer, and Pay-on-site.
 
 ## 🧩 Core Development Principles
 
 -   **Strict Decoupling (极致解耦):**
     -   **UI vs. Logic:** Keep presentation templates (`/templates`) clean of complex business logic.
+    -   **Styling Standard:** Use **Tailwind CSS** for all UI components. Avoid writing custom CSS in `assets/css/` unless absolutely necessary for third-party overrides.
+    -   **Design System:** Adhere to the Tailwind-based configuration (Colors: `primary`, `surface`, `error`, etc.) found in the modern UI prototypes.
     -   **Database Abstraction:** All SQL operations must reside in the `Conf_DB` class. Never write raw SQL in templates or registration logic.
     -   **Payment Abstraction:** Payment gateways should be modular. The registration flow should not depend on the internal implementation of a specific payment method.
--   **Boundary Awareness (边界意识):**
-    -   **Plugin Scope:** Only modify files within the plugin directory. Never touch WordPress core or other plugins.
-    -   **Namespace Protection:** All CSS classes, JS global variables, and PHP functions/classes must be prefixed with `conf_` or `Conf_` to prevent collisions.
--   **UI Consistency (视觉一致性):**
-    -   **Design System:** Adhere to the Tailwind-based configuration found in the modern UI prototypes.
-    -   **Component Reuse:** Reuse existing patterns for headers, sidebars, and form inputs across all new admin and frontend pages.
 -   **Security First:**
     -   **Input/Output:** Sanitize all inputs (`sanitize_text_field`, etc.) and escape all outputs (`esc_html`, `esc_attr`).
     -   **Verification:** Always use nonces and permission checks (`current_user_can`) for administrative actions and API calls.

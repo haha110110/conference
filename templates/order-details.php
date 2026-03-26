@@ -1,175 +1,274 @@
 <?php
 /**
- * Order Details Template
+ * Order Details Template (Tailwind UI - Restored Functionality)
  */
 
 if ( ! defined( 'ABSPATH' ) ) {
 	die;
 }
 
-$order_id = isset( $_GET['id'] ) ? intval( $_GET['id'] ) : 0;
+$order_id = isset( $_GET['order_id'] ) ? intval( $_GET['order_id'] ) : 0;
+if (!$order_id && isset($_GET['id'])) $order_id = intval($_GET['id']);
+
 $order = get_post( $order_id );
 
 if ( ! $order || $order->post_type !== 'conf_order' ) {
 	wp_die( __( 'Order not found.', 'conf-manager' ) );
 }
 
-// Permission check - user must be order owner or admin
+// Permission check
 if ( $order->post_author != get_current_user_id() && ! current_user_can( 'manage_options' ) ) {
 	wp_die( __( 'You do not have permission to view this order.', 'conf-manager' ) );
 }
 
-$status = get_post_meta( $order_id, 'conf_status', true );
+$status = get_post_meta( $order_id, 'conf_payment_status', true );
+if ( empty( $status ) ) $status = get_post_meta( $order_id, 'conf_status', true );
+
 $payment_method = get_post_meta( $order_id, 'conf_payment_method', true );
+$order_total = get_post_meta( $order_id, 'conf_order_total', true );
 
 global $wpdb;
 $table_attendees = $wpdb->prefix . 'conf_attendees';
 $attendees = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $table_attendees WHERE order_id = %d", $order_id ) );
 
 function conf_mask_phone( $phone ) {
-	if ( ! $phone || strlen( $phone ) < 7 ) {
-		return $phone;
-	}
+	if ( ! $phone || strlen( $phone ) < 7 ) return $phone;
 	return substr( $phone, 0, 3 ) . '****' . substr( $phone, -4 );
 }
 ?>
 
-<div id="conf-registration-container">
-	<div class="conf-card">
-		<div style="margin-bottom: 30px;">
-			<a href="<?php echo esc_url( remove_query_arg( array( 'action', 'id' ) ) ); ?>" class="conf-btn conf-btn-secondary" style="padding: 6px 12px; font-size: 13px;">
-				<?php esc_html_e( '← Back to Dashboard', 'conf-manager' ); ?>
-			</a>
-		</div>
+<!-- Tailwind Config & CDN -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+<script id="tailwind-config">
+tailwind.config = {
+    darkMode: "class",
+    theme: {
+        extend: {
+            colors: {
+                "outline-variant": "#bfc7d1",
+                "outline": "#707880",
+                "on-surface": "#1b1b1c",
+                "surface-container": "#f0eded",
+                "primary-fixed": "#cbe6ff",
+                "surface-container-high": "#eae7e7",
+                "surface-container-highest": "#e5e2e1",
+                "surface-container-lowest": "#ffffff",
+                "surface-bright": "#fcf9f8",
+                "surface": "#fcf9f8",
+                "on-primary-container": "#e4f1ff",
+                "on-primary": "#ffffff",
+                "surface-dim": "#dcd9d9",
+                "error-container": "#ffdad6",
+                "error": "#ba1a1a",
+                "tertiary-container": "#007c59",
+                "tertiary": "#006144",
+                "on-surface-variant": "#40484f",
+                "surface-variant": "#e5e2e1",
+                "primary-container": "#0073aa",
+                "primary": "#005986",
+                "on-background": "#1b1b1c",
+                "background": "#fcf9f8",
+                "surface-container-low": "#f6f3f2",
+                "tertiary-fixed": "#70fbc4",
+            },
+            fontFamily: { "headline": ["Inter"], "body": ["Inter"], "label": ["Inter"] }
+        }
+    }
+}
+</script>
 
-		<h2><?php printf( esc_html__( 'Order #%d Details', 'conf-manager' ), $order_id ); ?></h2>
-		
-		<div style="display: flex; gap: 20px; margin-bottom: 30px;">
-			<div class="conf-card" style="flex: 1; padding: 20px; margin-bottom: 0; background: #f8fafc;">
-				<p style="margin: 0; font-size: 14px; color: #64748b;"><?php esc_html_e( 'Status', 'conf-manager' ); ?></p>
-				<span class="conf-badge badge-<?php echo $status; ?>" style="font-size: 16px;"><?php echo strtoupper( $status ); ?></span>
-			</div>
-			<div class="conf-card" style="flex: 1; padding: 20px; margin-bottom: 0; background: #f8fafc;">
-				<p style="margin: 0; font-size: 14px; color: #64748b;"><?php esc_html_e( 'Payment Method', 'conf-manager' ); ?></p>
-				<p style="margin: 5px 0 0 0; font-weight: bold; font-size: 16px;"><?php echo strtoupper( $payment_method ); ?></p>
-			</div>
-		</div>
+<div id="conf-registration-container" class="min-h-screen bg-[#fcf9f8] font-body text-on-surface">
+    <div class="w-full sm:max-w-4xl mx-auto px-3 sm:px-6 py-8">
+        <!-- Back Button -->
+        <div class="mb-8">
+            <a href="<?php echo esc_url( remove_query_arg( array( 'action', 'order_id', 'id' ) ) ); ?>" class="inline-flex items-center gap-2 text-primary font-bold hover:underline transition-all">
+                <span class="material-symbols-outlined text-sm">arrow_back</span>
+                <?php esc_html_e( 'Back to Dashboard', 'conf-manager' ); ?>
+            </a>
+        </div>
 
-		<?php if ( $status !== 'paid' ) : ?>
-			<div class="conf-card" style="border: 1px solid #e2e8f0; margin-bottom: 30px;">
-				<h3><?php esc_html_e( 'Payment Method', 'conf-manager' ); ?></h3>
-				
-				<?php if ( $payment_method === 'wechat' ) : ?>
-					<div style="text-align: center; padding: 20px;">
-						<button type="button" class="conf-wechat-pay-btn conf-btn conf-btn-primary" data-order-id="<?php echo esc_attr( $order_id ); ?>" data-payment-type="auto" style="width: 100%; max-width: 300px;">
-							🟢 <?php esc_html_e( 'Pay with WeChat', 'conf-manager' ); ?>
-						</button>
-						<p style="margin-top: 15px; color: #64748b; font-size: 13px;">
-							<?php esc_html_e( 'Click to initiate payment. PC: Scan QR code. Mobile: Redirect to WeChat.', 'conf-manager' ); ?>
-						</p>
-					</div>
-				<?php else : ?>
-					<form id="conf-update-payment-form">
-						<input type="hidden" name="order_id" value="<?php echo esc_attr( $order_id ); ?>">
-						<div class="ticket-grid">
-							<label class="ticket-card" style="display: block; cursor: pointer;">
-								<input type="radio" name="payment_method" value="wechat" <?php checked( $payment_method, 'wechat' ); ?> style="display: none;">
-								<div style="font-size: 24px; margin-bottom: 5px;">🟢</div>
-								<h4 style="margin: 5px 0;"><?php esc_html_e( 'WeChat Pay', 'conf-manager' ); ?></h4>
-							</label>
+        <div class="bg-surface-container-lowest rounded-3xl p-4 sm:p-12 shadow-[0_12px_48px_rgba(27,27,28,0.06)] border border-outline-variant/10">
+            <!-- Header Info -->
+            <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-10 pb-10 border-b border-outline-variant/10">
+                <div>
+                    <h1 class="text-3xl font-black tracking-tight text-on-surface mb-2">
+                        <?php printf( esc_html__( 'Order #%d', 'conf-manager' ), $order_id ); ?>
+                    </h1>
+                    <p class="text-on-surface-variant font-medium"><?php printf( esc_html__( 'Total Amount: ￥%s', 'conf-manager' ), number_format( floatval($order_total), 2 ) ); ?></p>
+                </div>
+                
+                <?php 
+                    $status_class = 'bg-error/10 text-error';
+                    if ($status === 'paid') $status_class = 'bg-tertiary/10 text-tertiary';
+                    if ($status === 'pending') $status_class = 'bg-amber-100 text-amber-700';
+                ?>
+                <div class="flex flex-col items-end">
+                    <span class="text-[0.65rem] font-black uppercase tracking-widest text-on-surface-variant mb-2"><?php esc_html_e( 'Current Status', 'conf-manager' ); ?></span>
+                    <span class="inline-block px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-wider <?php echo $status_class; ?>">
+                        <?php echo esc_html( $status ); ?>
+                    </span>
+                </div>
+            </div>
 
-							<label class="ticket-card" style="display: block; cursor: pointer;">
-								<input type="radio" name="payment_method" value="bank" <?php checked( $payment_method, 'bank' ); ?> style="display: none;">
-								<div style="font-size: 24px; margin-bottom: 5px;">🏦</div>
-								<h4 style="margin: 5px 0;"><?php esc_html_e( 'Bank Transfer', 'conf-manager' ); ?></h4>
-							</label>
+            <!-- Payment Management (If Unpaid/Pending) -->
+            <?php if ( $status !== 'paid' ) : ?>
+                <div class="bg-surface-container-low rounded-3xl p-8 border border-outline-variant/10 mb-12">
+                    <h3 class="text-xl font-black text-on-surface mb-6 flex items-center gap-2">
+                        <span class="material-symbols-outlined text-primary">payments</span>
+                        <?php esc_html_e( 'Payment Management', 'conf-manager' ); ?>
+                    </h3>
 
-							<label class="ticket-card" style="display: block; cursor: pointer;">
-								<input type="radio" name="payment_method" value="onsite" <?php checked( $payment_method, 'onsite' ); ?> style="display: none;">
-								<div style="font-size: 24px; margin-bottom: 5px;">💵</div>
-								<h4 style="margin: 5px 0;"><?php esc_html_e( 'Pay on Site', 'conf-manager' ); ?></h4>
-							</label>
-						</div>
+                    <form id="conf-update-payment-form" class="space-y-6">
+                        <input type="hidden" name="order_id" value="<?php echo esc_attr( $order_id ); ?>">
+                        
+                        <!-- Payment Method Toggle -->
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                            <?php 
+                            $methods = array(
+                                'wechat' => array('icon' => 'qr_code_2', 'label' => 'WeChat', 'color' => 'text-[#07C160]'),
+                                'bank'   => array('icon' => 'account_balance', 'label' => 'Bank', 'color' => 'text-primary'),
+                                'onsite' => array('icon' => 'payments', 'label' => 'On-site', 'color' => 'text-amber-600')
+                            );
+                            foreach ($methods as $key => $data): ?>
+                            <label class="relative cursor-pointer group">
+                                <input type="radio" name="payment_method" value="<?php echo $key; ?>" <?php checked( $payment_method, $key ); ?> class="sr-only peer">
+                                <div class="p-4 rounded-xl border-2 border-transparent bg-white shadow-sm ring-1 ring-inset ring-outline-variant/10 peer-checked:border-primary peer-checked:ring-primary peer-checked:bg-primary/5 transition-all flex flex-col items-center justify-center gap-2">
+                                    <span class="material-symbols-outlined <?php echo $data['color']; ?> text-2xl"><?php echo $data['icon']; ?></span>
+                                    <span class="text-xs font-black uppercase tracking-tighter"><?php echo esc_html($data['label']); ?></span>
+                                </div>
+                            </label>
+                            <?php endforeach; ?>
+                        </div>
 
-						<div id="bank-transfer-instructions" style="<?php echo $payment_method === 'bank' ? '' : 'display: none;'; ?> margin-top: 20px; padding: 15px; border-radius: 8px; background: #fffbeb; border: 1px solid #fde68a;">
-							<p style="font-size: 13px;"><?php echo wp_kses_post( sprintf( __( 'Please transfer to:<br><strong>Name:</strong> %s<br><strong>Account:</strong> %s<br><strong>Bank:</strong> %s', 'conf-manager' ), get_option( 'conf_bank_acc_name' ), get_option( 'conf_bank_acc_no' ), get_option( 'conf_bank_name' ) ) ); ?></p>
-							<div class="conf-form-group" style="margin-top: 10px;">
-								<label style="font-size: 13px;"><?php esc_html_e( 'Update Receipt Image', 'conf-manager' ); ?></label>
-								<input type="file" name="bank_receipt" class="conf-input" accept="image/*">
-							</div>
-						</div>
+                        <!-- Dynamic Content: Bank Instructions & Upload -->
+                        <div id="bank-transfer-instructions" class="<?php echo $payment_method === 'bank' ? '' : 'hidden'; ?> bg-amber-50 rounded-2xl p-6 border border-amber-200">
+                            <div class="flex items-start gap-3 mb-4">
+                                <span class="material-symbols-outlined text-amber-600 mt-0.5">info</span>
+                                <div class="text-sm text-amber-900 font-medium">
+                                    <?php echo wp_kses_post( sprintf( __( 'Transfer to: <br><strong>%s</strong><br>Acc: <strong>%s</strong><br>Bank: <strong>%s</strong>', 'conf-manager' ), get_option( 'conf_bank_acc_name' ), get_option( 'conf_bank_acc_no' ), get_option( 'conf_bank_name' ) ) ); ?>
+                                </div>
+                            </div>
+                            
+                            <div class="mt-4">
+                                <label class="block text-xs font-black uppercase tracking-widest text-on-surface-variant mb-2"><?php esc_html_e( 'Upload Receipt', 'conf-manager' ); ?></label>
+                                <div class="relative group">
+                                    <input type="file" name="bank_receipt" class="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10" accept="image/*">
+                                    <div class="bg-white border-2 border-dashed border-amber-300 rounded-xl p-6 text-center group-hover:bg-amber-100 transition-colors">
+                                        <span class="material-symbols-outlined text-amber-400 text-3xl mb-1">cloud_upload</span>
+                                        <p class="text-xs font-bold text-amber-700">Tap to select or change receipt</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
 
-						<div id="update-payment-message" style="margin-top: 15px;"></div>
-						<button type="submit" class="conf-btn conf-btn-primary" style="margin-top: 15px; width: 100%;"><?php esc_html_e( 'Update Payment Method', 'conf-manager' ); ?></button>
-					</form>
-				<?php endif; ?>
-			</div>
-		<?php endif; ?>
+                        <!-- WeChat Pay Button (Quick Access) -->
+                        <?php if ($payment_method === 'wechat'): ?>
+                        <div id="wechat-pay-quick" class="pt-4">
+                            <button type="button" class="conf-wechat-pay-btn w-full bg-[#07C160] text-white font-black py-4 rounded-xl shadow-lg hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2" data-order-id="<?php echo esc_attr( $order_id ); ?>" data-payment-type="auto">
+                                <span class="material-symbols-outlined">qr_code_2</span>
+                                <?php esc_html_e( 'Pay with WeChat Now', 'conf-manager' ); ?>
+                            </button>
+                        </div>
+                        <?php endif; ?>
 
-		<h3><?php esc_html_e( 'Attendees & Check-in Codes', 'conf-manager' ); ?></h3>
-		<p style="color: #64748b; margin-bottom: 24px;"><?php esc_html_e( 'Please show the QR code or 6-digit code to staff at the venue.', 'conf-manager' ); ?></p>
+                        <div id="update-payment-message" class="text-sm font-bold text-center"></div>
+                        
+                        <button type="submit" class="w-full bg-on-surface text-white font-black py-4 rounded-xl shadow-lg hover:opacity-90 active:scale-95 transition-all">
+                            <?php esc_html_e( 'Update Order Info', 'conf-manager' ); ?>
+                        </button>
+                    </form>
+                </div>
+            <?php endif; ?>
 
-		<div style="display: grid; gap: 20px;">
-			<?php foreach ( $attendees as $attendee ) : ?>
-				<div class="conf-card" style="border: 1px solid #e2e8f0; margin-bottom: 0; padding: 20px;">
-					<div style="display: flex; justify-content: space-between; align-items: flex-start;">
-						<div style="flex: 1;">
-							<h4 style="margin: 0; font-size: 18px;"><?php echo esc_html( $attendee->name ); ?></h4>
-							<p style="margin: 5px 0; color: #64748b; font-size: 14px;">
-								<?php echo esc_html( $attendee->company ); ?>
-								<?php if ( $attendee->job_title ) : ?>
-								 · <?php echo esc_html( $attendee->job_title ); ?>
-								<?php endif; ?>
-							</p>
-							<p style="margin: 5px 0; color: #94a3b8; font-size: 13px;">
-								📱 <?php echo esc_html( conf_mask_phone( $attendee->phone ) ); ?>
-							</p>
-							
-							<?php if ( $status === 'paid' ) : ?>
-								<div style="margin-top: 20px;">
-									<p style="margin: 0 0 5px 0; font-weight: 600; color: #166534;"><?php esc_html_e( 'Verification Code:', 'conf-manager' ); ?></p>
-									<div style="display: flex; align-items: center; gap: 10px;">
-										<span id="code-<?php echo $attendee->id; ?>" style="font-family: monospace; font-size: 24px; letter-spacing: 2px; background: #dcfce7; padding: 5px 15px; border-radius: 6px; cursor: pointer;" onclick="copyCode('<?php echo $attendee->six_digit_code; ?>', <?php echo $attendee->id; ?>)" title="Click to copy">
-											<?php echo esc_html( $attendee->six_digit_code ); ?>
-										</span>
-										<span id="copy-tip-<?php echo $attendee->id; ?>" style="font-size: 12px; color: #64748b;">Tap to copy</span>
-									</div>
-								</div>
-							<?php else : ?>
-								<div style="margin-top: 20px; padding: 15px; background: #fffbeb; border-radius: 8px; border: 1px solid #fde68a;">
-									<p style="margin: 0; font-size: 13px; color: #854d0e;">
-										<?php esc_html_e( 'Codes will be visible after payment confirmation.', 'conf-manager' ); ?>
-									</p>
-								</div>
-							<?php endif; ?>
-						</div>
+            <!-- Attendees List -->
+            <div class="space-y-8">
+                <div class="flex items-center gap-3 mb-6">
+                    <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center text-primary">
+                        <span class="material-symbols-outlined">group</span>
+                    </div>
+                    <h2 class="text-2xl font-black tracking-tight"><?php esc_html_e( 'Attendee Tickets', 'conf-manager' ); ?></h2>
+                </div>
 
-						<?php if ( $status === 'paid' ) : ?>
-							<div style="text-align: center;">
-								<?php
-								$qr_data = 'conf:' . $attendee->six_digit_code . '|' . $attendee->name . '|' . $attendee->phone;
-								$qr_api_url = 'https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=' . urlencode( $qr_data );
-								?>
-								<img src="<?php echo esc_url( $qr_api_url ); ?>" alt="QR Code" style="width: 100px; height: 100px; border-radius: 8px; border: 1px solid #ddd; margin-bottom: 5px;">
-								<span style="font-size: 11px; color: #64748b;"><?php esc_html_e( 'Scan at door', 'conf-manager' ); ?></span>
-							</div>
-						<?php endif; ?>
-					</div>
-				</div>
-			<?php endforeach; ?>
-		</div>
-	</div>
+                <div class="grid grid-cols-1 gap-6">
+                    <?php foreach ( $attendees as $attendee ) : ?>
+                        <div class="bg-surface-container-low rounded-3xl p-6 sm:p-8 border border-outline-variant/10 group">
+                            <div class="flex flex-col sm:flex-row justify-between gap-8">
+                                <div class="flex-1">
+                                    <h4 class="text-2xl font-black tracking-tight text-on-surface mb-2"><?php echo esc_html( $attendee->name ); ?></h4>
+                                    <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-on-surface-variant font-medium text-sm">
+                                        <div class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">business</span><?php echo esc_html( $attendee->company ); ?></div>
+                                        <div class="flex items-center gap-1"><span class="material-symbols-outlined text-sm">smartphone</span><?php echo esc_html( conf_mask_phone( $attendee->phone ) ); ?></div>
+                                    </div>
+                                    
+                                    <?php if ( $status === 'paid' ) : ?>
+                                        <div class="mt-8 pt-6 border-t border-outline-variant/10">
+                                            <p class="text-[0.65rem] font-black tracking-widest text-tertiary uppercase mb-3"><?php esc_html_e( 'Check-in Code', 'conf-manager' ); ?></p>
+                                            <div class="flex items-center gap-4">
+                                                <div id="code-<?php echo $attendee->id; ?>" class="bg-tertiary/10 text-tertiary text-2xl font-black tracking-[0.2em] px-5 py-3 rounded-2xl cursor-pointer hover:bg-tertiary/20 transition-all border border-tertiary/20" onclick="copyCode('<?php echo $attendee->six_digit_code; ?>', <?php echo $attendee->id; ?>)">
+                                                    <?php echo esc_html( $attendee->six_digit_code ); ?>
+                                                </div>
+                                                <span id="copy-tip-<?php echo $attendee->id; ?>" class="text-xs font-bold text-on-surface-variant flex items-center gap-1">
+                                                    <span class="material-symbols-outlined text-sm">content_copy</span> Tap to copy
+                                                </span>
+                                            </div>
+                                        </div>
+                                    <?php else : ?>
+                                        <div class="mt-8 p-6 bg-surface-container-high rounded-2xl border border-outline-variant/10 flex items-start gap-3">
+                                            <span class="material-symbols-outlined text-on-surface-variant mt-0.5">lock</span>
+                                            <p class="text-sm font-medium text-on-surface-variant">
+                                                <?php esc_html_e( 'Tickets will be issued automatically after payment confirmation.', 'conf-manager' ); ?>
+                                            </p>
+                                        </div>
+                                    <?php endif; ?>
+                                </div>
+
+                                <?php if ( $status === 'paid' ) : ?>
+                                    <div class="flex flex-col items-center justify-center bg-white p-5 rounded-3xl shadow-sm border border-outline-variant/5 w-full sm:w-44">
+                                        <?php
+                                        $qr_data = 'conf:' . $attendee->six_digit_code . '|' . $attendee->name . '|' . $attendee->phone;
+                                        $qr_api_url = 'https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=' . urlencode( $qr_data );
+                                        ?>
+                                        <img src="<?php echo esc_url( $qr_api_url ); ?>" alt="QR Code" class="w-28 h-28 mb-4 group-hover:scale-105 transition-transform">
+                                        <span class="text-[0.65rem] font-black text-on-surface-variant uppercase tracking-widest"><?php esc_html_e( 'Scan at door', 'conf-manager' ); ?></span>
+                                    </div>
+                                <?php endif; ?>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
+// Toggle bank instructions
+document.querySelectorAll('input[name="payment_method"]').forEach(radio => {
+    radio.addEventListener('change', (e) => {
+        const bankWrap = document.getElementById('bank-transfer-instructions');
+        const wechatBtn = document.getElementById('wechat-pay-quick');
+        if (e.target.value === 'bank') {
+            bankWrap.classList.remove('hidden');
+        } else {
+            bankWrap.classList.add('hidden');
+        }
+        if (wechatBtn) {
+            e.target.value === 'wechat' ? wechatBtn.classList.remove('hidden') : wechatBtn.classList.add('hidden');
+        }
+    });
+});
+
 function copyCode(code, id) {
     navigator.clipboard.writeText(code).then(function() {
         var tip = document.getElementById('copy-tip-' + id);
-        tip.textContent = 'Copied!';
-        tip.style.color = '#166534';
+        var originalHtml = tip.innerHTML;
+        tip.innerHTML = '<span class="material-symbols-outlined text-sm">check_circle</span> Copied!';
+        tip.classList.add('text-tertiary');
         setTimeout(function() {
-            tip.textContent = 'Tap to copy';
-            tip.style.color = '#64748b';
+            tip.innerHTML = originalHtml;
+            tip.classList.remove('text-tertiary');
         }, 2000);
     });
 }

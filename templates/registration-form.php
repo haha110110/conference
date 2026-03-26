@@ -106,17 +106,21 @@ tailwind.config = {
 <div class="conf-tw-wrapper pb-32">
     <!-- Header -->
     <header class="bg-[#fcf9f8] sticky top-0 z-50 border-b border-[#f6f3f2]">
-        <div class="flex items-center justify-between px-6 py-4 w-full max-w-2xl mx-auto">
+        <div class="flex items-center justify-between px-4 sm:px-6 py-4 w-full sm:max-w-4xl mx-auto">
             <div class="flex items-center gap-4">
                 <a href="<?php echo esc_url( remove_query_arg( 'action' ) ); ?>" class="text-[#005986] hover:bg-[#f6f3f2] p-1 rounded-full transition-colors flex items-center justify-center">
                     <span class="material-symbols-outlined">arrow_back</span>
                 </a>
                 <h1 class="font-bold tracking-tight text-lg text-[#005986]">Conference Registration</h1>
             </div>
+            <div class="flex items-center gap-4 !mb-0 text-sm text-on-surface-variant">
+                <a href="<?php echo add_query_arg( 'conf_lang', 'zh_CN' ); ?>" class="<?php echo get_locale() === 'zh_CN' ? 'font-bold text-primary' : ''; ?>">中文</a> | 
+                <a href="<?php echo add_query_arg( 'conf_lang', 'en_US' ); ?>" class="<?php echo get_locale() === 'en_US' ? 'font-bold text-primary' : ''; ?>">English</a>
+            </div>
         </div>
     </header>
 
-    <main class="pt-8 px-6 max-w-2xl mx-auto" id="registration-app">
+    <main class="pt-8 px-4 sm:px-6 sm:max-w-4xl mx-auto" id="registration-app">
         <form id="conf-registration-form">
             
             <!-- STEP 1: Attendee Details -->
