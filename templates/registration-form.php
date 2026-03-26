@@ -85,6 +85,9 @@ tailwind.config = {
     .qr-pattern { background-image: radial-gradient(circle at 2px 2px, #005986 1px, transparent 0); background-size: 8px 8px; }
     
     /* Scoped Tailwind Reset overrides to avoid messing up WP Admin if loaded there, but mostly for frontend */
+    .conf-tw-wrapper *, .conf-tw-wrapper *::before, .conf-tw-wrapper *::after {
+        box-sizing: border-box;
+    }
     .conf-tw-wrapper input[type="text"], .conf-tw-wrapper input[type="email"], .conf-tw-wrapper input[type="tel"] {
         background-color: transparent;
         border: none;

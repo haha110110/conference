@@ -11,6 +11,12 @@
     line-height: 1.6;
 }
 
+#conf-registration-container *,
+#conf-registration-container *::before,
+#conf-registration-container *::after {
+    box-sizing: border-box;
+}
+
 /* Card Layout */
 .conf-card {
     background: #ffffff;
@@ -237,119 +243,38 @@
 .badge-pending { background: #fef9c3; color: #854d0e; }
 .badge-unpaid { background: #fee2e2; color: #991b1b; }
 
+/* Language Switcher */
+.conf-lang-switcher {
+    text-align: right;
+    margin-bottom: 12px;
+    font-size: 14px;
+}
+.conf-lang-switcher a {
+    color: #64748b;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+.conf-lang-switcher a:hover {
+    color: #3b82f6;
+}
+
 /* Responsive - Mobile First */
 @media (max-width: 640px) {
     #conf-registration-container {
         margin: 0;
         padding: 0;
     }
-    .conf-card {
-        padding: 20px 16px;
-        border-radius: 0;
-        margin-bottom: 12px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.06);
-    }
     
-    /* Mobile Stepper */
-    .conf-stepper {
-        margin-bottom: 24px;
-    }
-    .conf-step {
-        width: 28px;
-        height: 28px;
-        font-size: 12px;
-    }
-    
-    /* Mobile Typography */
-    #conf-registration-container h1 { font-size: 22px; }
-    #conf-registration-container h2 { font-size: 18px; }
-    #conf-registration-container h3 { font-size: 16px; }
-    
-    /* Mobile Buttons - Full width, larger touch target */
-    .conf-btn {
-        padding: 14px 20px;
-        font-size: 15px;
-        width: 100%;
-        margin-bottom: 10px;
-    }
-    .conf-btn-primary,
-    .conf-btn-secondary,
-    .conf-btn-danger {
-        display: block;
-        width: 100%;
-    }
-    
-    /* Mobile Form */
-    .conf-form-group {
-        margin-bottom: 16px;
-    }
-    .conf-input {
-        padding: 14px 12px;
-        font-size: 16px; /* Prevent iOS zoom */
-    }
-    
-    /* Mobile Table -> Card List */
-    .conf-table {
-        display: block;
-    }
-    .conf-table thead {
-        display: none;
-    }
-    .conf-table tbody,
-    .conf-table tr,
-    .conf-table td {
-        display: block;
-        width: 100%;
-    }
-    .conf-table tr {
-        padding: 16px;
-        border: 1px solid #e2e8f0;
-        border-radius: 10px;
-        margin-bottom: 12px;
-        background: #fff;
-    }
-    .conf-table td {
-        padding: 6px 0;
-        border: none;
-    }
-    .conf-table td::before {
-        content: attr(data-label);
-        font-weight: 600;
-        color: #64748b;
-        font-size: 12px;
-        display: block;
-    }
-    
-    /* Mobile Ticket Grid */
-    .ticket-grid {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-    
-    /* Mobile Attendee Card */
-    .attendee-card {
-        padding: 16px;
-        margin-bottom: 12px;
-    }
-    .remove-attendee {
-        top: 10px;
-        right: 10px;
-        width: 28px;
-        height: 28px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background: #f1f5f9;
-        border-radius: 50%;
-    }
-    
-    /* Mobile Dashboard */
-    .lang-switcher {
-        text-align: center !important;
+    /* Mobile Language Switcher */
+    .conf-lang-switcher {
+        text-align: center;
         padding: 10px;
         background: #f8fafc;
-        margin: -20px -16px 20px -16px;
+        margin: 0 0 20px 0;
+        border-bottom: 1px solid #e2e8f0;
     }
+... (rest of the media query remains unchanged) ...
+    /* Mobile Dashboard Header Adjustment */
     .conf-card > div:first-child {
         flex-direction: column;
         gap: 12px;

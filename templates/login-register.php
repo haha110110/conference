@@ -9,12 +9,12 @@ if ( ! defined( 'ABSPATH' ) ) {
 ?>
 
 <div id="conf-registration-container">
-	<div class="conf-card">
-		<div class="lang-switcher" style="text-align: right; margin-bottom: 20px;">
-			<a href="<?php echo add_query_arg( 'conf_lang', 'zh_CN' ); ?>">中文</a> | 
-			<a href="<?php echo add_query_arg( 'conf_lang', 'en_US' ); ?>">English</a>
-		</div>
+	<div class="conf-lang-switcher">
+		<a href="<?php echo add_query_arg( 'conf_lang', 'zh_CN' ); ?>">中文</a> | 
+		<a href="<?php echo add_query_arg( 'conf_lang', 'en_US' ); ?>">English</a>
+	</div>
 
+	<div class="conf-card">
 		<h2><?php esc_html_e( 'Conference Management', 'conf-manager' ); ?></h2>
 		<p><?php esc_html_e( 'Please log in or register to manage your conference registrations.', 'conf-manager' ); ?></p>
 		

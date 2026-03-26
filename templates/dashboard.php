@@ -29,7 +29,7 @@ $total_pages = ceil( $total_orders / $posts_per_page );
 ?>
 
 <div id="conf-registration-container">
-	<div class="lang-switcher" style="text-align: right; margin-bottom: 10px;">
+	<div class="conf-lang-switcher">
 		<a href="<?php echo add_query_arg( 'conf_lang', 'zh_CN' ); ?>">中文</a> | 
 		<a href="<?php echo add_query_arg( 'conf_lang', 'en_US' ); ?>">English</a>
 	</div>

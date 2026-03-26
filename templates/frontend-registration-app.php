@@ -34,6 +34,11 @@ if ( ! defined( 'ABSPATH' ) ) {
 		#conf-registration-app {
 			font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
 		}
+		#conf-registration-app *,
+		#conf-registration-app *::before,
+		#conf-registration-app *::after {
+			box-sizing: border-box;
+		}
 		#conf-registration-app input[type="text"], 
 		#conf-registration-app input[type="email"], 
 		#conf-registration-app input[type="tel"] {
