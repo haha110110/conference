@@ -163,6 +163,28 @@ if ( ! defined( 'ABSPATH' ) ) {
 			</tr>
 		</table>
 
+		<hr>
+
+		<h2><?php echo esc_html__( 'Admin Contact Settings', 'conf-manager' ); ?></h2>
+		<p class="description"><?php echo esc_html__( 'These settings are used in rejection emails for bank transfer verification failures.', 'conf-manager' ); ?></p>
+		
+		<table class="form-table">
+			<tr>
+				<th scope="row"><?php echo esc_html__( 'Admin Name', 'conf-manager' ); ?></th>
+				<td>
+					<input type="text" name="conf_admin_name" value="<?php echo esc_attr( get_option( 'conf_admin_name' ) ); ?>" class="regular-text" placeholder="<?php echo esc_attr__( 'e.g., Conference Support Team', 'conf-manager' ); ?>">
+					<p class="description"><?php echo esc_html__( 'Name shown in rejection emails.', 'conf-manager' ); ?></p>
+				</td>
+			</tr>
+			<tr>
+				<th scope="row"><?php echo esc_html__( 'Admin Phone', 'conf-manager' ); ?></th>
+				<td>
+					<input type="text" name="conf_admin_phone" value="<?php echo esc_attr( get_option( 'conf_admin_phone' ) ); ?>" class="regular-text" placeholder="<?php echo esc_attr__( 'e.g., +86 400-123-4567', 'conf-manager' ); ?>">
+					<p class="description"><?php echo esc_html__( 'Phone number shown in rejection emails.', 'conf-manager' ); ?></p>
+				</td>
+			</tr>
+		</table>
+
 		<?php submit_button(); ?>
 	</form>
 </div>

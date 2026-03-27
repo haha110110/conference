@@ -149,13 +149,14 @@ class Conf_Admin {
 					update_post_meta( $order_id, 'conf_status', 'paid' );
 					update_post_meta( $order_id, 'conf_approved_by', get_current_user_id() );
 					update_post_meta( $order_id, 'conf_approved_time', current_time( 'mysql' ) );
-					Conf_Manager::send_email( $order_id, 'confirmed' );
-					echo '<div class="updated"><p>' . esc_html__( 'Order Approved and Confirmation Email Sent!', 'conf-manager' ) . '</p></div>';
+					Conf_Manager::send_email_with_qr_attachment( $order_id );
+					echo '<div class="updated"><p>' . esc_html__( 'Order Approved and Confirmation Email with QR Code Sent!', 'conf-manager' ) . '</p></div>';
 				} else {
 					update_post_meta( $order_id, 'conf_status', 'rejected' );
 					update_post_meta( $order_id, 'conf_rejected_by', get_current_user_id() );
 					update_post_meta( $order_id, 'conf_rejected_time', current_time( 'mysql' ) );
-					echo '<div class="updated"><p>' . esc_html__( 'Order Rejected.', 'conf-manager' ) . '</p></div>';
+					Conf_Manager::send_email( $order_id, 'rejected' );
+					echo '<div class="updated"><p>' . esc_html__( 'Order Rejected and Email Sent.', 'conf-manager' ) . '</p></div>';
 				}
 			}
 		}
@@ -219,6 +220,10 @@ class Conf_Admin {
 		// Email Settings
 		register_setting( 'conf_settings_group', 'conf_email_received_body' );
 		register_setting( 'conf_settings_group', 'conf_email_confirmed_body' );
+
+		// Admin Contact Settings
+		register_setting( 'conf_settings_group', 'conf_admin_name' );
+		register_setting( 'conf_settings_group', 'conf_admin_phone' );
 	}
 
 	/**

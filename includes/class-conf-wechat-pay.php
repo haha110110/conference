@@ -211,8 +211,8 @@ class Conf_WeChat_Pay {
 			// Log payment transaction
 			$this->log_payment( $order_id, $total_fee * 100, $transaction_id, 'payment' );
 
-			// Send confirmation email
-			Conf_Manager::send_email( $order_id, 'confirmed' );
+			// Send confirmation email with QR code
+			Conf_Manager::send_email_with_qr_attachment( $order_id );
 
 			return new WP_REST_Response( array( 'code' => 'SUCCESS', 'message' => 'OK' ), 200 );
 		}

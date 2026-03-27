@@ -77,6 +77,7 @@ if ( ! defined( 'ABSPATH' ) ) {
 					<th><?php echo esc_html__( 'Job Title', 'conf-manager' ); ?></th>
 					<th><?php echo esc_html__( 'Payment Status', 'conf-manager' ); ?></th>
 					<th><?php echo esc_html__( 'Payment Method', 'conf-manager' ); ?></th>
+					<th><?php echo esc_html__( 'Receipt', 'conf-manager' ); ?></th>
 					<th><?php echo esc_html__( 'Check-in Time', 'conf-manager' ); ?></th>
 					<th><?php echo esc_html__( 'Materials', 'conf-manager' ); ?></th>
 				</tr>
@@ -84,26 +85,47 @@ if ( ! defined( 'ABSPATH' ) ) {
 			<tbody>
 				<?php 
 				foreach ( $attendees as $att ) : 
-					// Try to load cached meta if we pulled it in the query, else fallback
-					$payment_status = isset($att->payment_status) ? $att->payment_status : get_post_meta( $att->order_id, 'conf_status', true );
-					$payment_method = isset($att->payment_method) ? $att->payment_method : get_post_meta( $att->order_id, 'conf_payment_method', true );
+					$payment_status = isset($att->payment_status) ? $att->payment_status : Conf_Utils::get_order_status( $att->order_id );
+					$payment_method = isset($att->payment_method) ? $att->payment_method : Conf_Utils::get_payment_method( $att->order_id );
+					$receipt_url = get_post_meta( $att->order_id, 'conf_bank_receipt_url', true );
 					
 					$color = '#888';
 					if ( $payment_status === 'paid' ) $color = 'green';
 					if ( $payment_status === 'unpaid' ) $color = 'red';
+					if ( $payment_status === 'pending' ) $color = '#f59e0b';
 					
-					$method_display = '-';
-					if ( $payment_method === 'wechat' ) $method_display = '🟢 WeChat';
-					if ( $payment_method === 'bank' ) $method_display = '🏦 Bank';
-					if ( $payment_method === 'onsite' ) $method_display = '💵 On Site';
+					$status_badge = '';
+					if ( Conf_Utils::is_onsite_pending( $att->order_id ) ) {
+						$status_badge = ' <span style="background:#dc2626; color:#fff; padding:2px 6px; border-radius:3px; font-size:10px;">NEED CONFIRM</span>';
+					}
+					if ( $payment_status === 'pending' && $payment_method === 'bank' ) {
+						$status_badge = ' <span style="background:#f59e0b; color:#fff; padding:2px 6px; border-radius:3px; font-size:10px;">VERIFY</span>';
+					}
+					
+					$method_badge = '-';
+					if ( $payment_method === 'wechat' ) $method_badge = '<span style="color:#07C160; font-weight:bold;">WeChat</span>';
+					if ( $payment_method === 'bank' ) $method_badge = '<span style="background:#fef3c7; color:#92400e; padding:2px 8px; border-radius:4px; font-weight:bold;">Bank</span>';
+					if ( $payment_method === 'onsite' ) $method_badge = '<span style="background:#dbeafe; color:#1e40af; padding:2px 8px; border-radius:4px; font-weight:bold;">On Site</span>';
+					
+					$receipt_badge = '-';
+					if ( $receipt_url ) {
+						$receipt_badge = '<span style="background:#16a34a; color:#fff; padding:2px 6px; border-radius:3px; font-size:10px;">RECEIPT</span>';
+					}
+					
+					$row_style = '';
+					if ( ($payment_status === 'unpaid' && $payment_method === 'onsite') || 
+					     ($payment_status === 'pending' && $payment_method === 'bank') ) {
+						$row_style = 'background: #fef9c3;';
+					}
 				?>
-				<tr>
+				<tr style="<?php echo $row_style; ?>">
 					<td><strong><?php echo esc_html( $att->name ); ?></strong></td>
 					<td><?php echo esc_html( $att->phone ); ?></td>
 					<td><?php echo esc_html( $att->company ); ?></td>
 					<td><?php echo esc_html( $att->job_title ); ?></td>
-					<td><span style="color: <?php echo esc_attr( $color ); ?>; font-weight: bold;"><?php echo esc_html( strtoupper( $payment_status ) ); ?></span></td>
-					<td><?php echo esc_html( $method_display ); ?></td>
+					<td><span style="color: <?php echo esc_attr( $color ); ?>; font-weight: bold;"><?php echo esc_html( strtoupper( $payment_status ) ); ?></span><?php echo $status_badge; ?></td>
+					<td><?php echo $method_badge; ?></td>
+					<td><?php echo $receipt_badge; ?></td>
 					<td><?php echo ( $att->checkin_time ? esc_html( $att->checkin_time ) : '-' ); ?></td>
 					<td><?php echo ( $att->material_time ? esc_html( $att->material_time ) : '-' ); ?></td>
 				</tr>

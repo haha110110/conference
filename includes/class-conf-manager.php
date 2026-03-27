@@ -20,6 +20,9 @@ class Conf_Manager {
 	 * Run the plugin logic
 	 */
 	public function run() {
+		// Load utility functions first
+		require_once CONF_MANAGER_PATH . 'includes/class-conf-utils.php';
+
 		add_action( 'plugins_loaded', array( $this, 'load_textdomain' ) );
 		add_action( 'init', array( $this, 'register_post_types' ) );
 		add_filter( 'locale', array( $this, 'set_plugin_locale' ), 10, 1 );
@@ -103,11 +106,8 @@ class Conf_Manager {
 		$user = get_userdata( $order->post_author );
 		if ( ! $user ) return false;
 
-		$payment_method = get_post_meta( $order_id, 'conf_payment_method', true );
-		
-		global $wpdb;
-		$table_attendees = $wpdb->prefix . 'conf_attendees';
-		$attendees = $wpdb->get_results( $wpdb->prepare( "SELECT * FROM $table_attendees WHERE order_id = %d", $order_id ) );
+		$payment_method = Conf_Utils::get_payment_method( $order_id );
+		$attendees = Conf_Utils::get_attendees( $order_id );
 		
 		$attendee_list = '<ul>';
 		foreach ( $attendees as $att ) {
@@ -124,6 +124,15 @@ class Conf_Manager {
 		} elseif ( $type === 'confirmed' ) {
 			$subject = __( 'Payment Confirmed', 'conf-manager' );
 			$body = get_option( 'conf_email_confirmed_body', 'Your payment is confirmed! Here is your check-in code info: {attendee_list}' );
+		} elseif ( $type === 'rejected' ) {
+			$subject = __( 'Payment Verification Failed', 'conf-manager' );
+			$admin_contact = Conf_Utils::get_admin_contact();
+			$body = sprintf(
+				__( 'Dear {registrant_name},<br><br>We were unable to verify your payment for order #%d.<br><br>If you have any questions, please contact %s at %s.', 'conf-manager' ),
+				$order_id,
+				$admin_contact['name'] ?: 'the administrator',
+				$admin_contact['phone'] ?: 'N/A'
+			);
 		}
 
 		// Replace placeholders
@@ -135,6 +144,53 @@ class Conf_Manager {
 		$headers = array('Content-Type: text/html; charset=UTF-8');
 
 		return wp_mail( $user->user_email, $subject, wpautop( $body ), $headers );
+	}
+
+	/**
+	 * Send confirmation email with QR code attachment
+	 */
+	public static function send_email_with_qr_attachment( $order_id ) {
+		$order = get_post( $order_id );
+		if ( ! $order ) return false;
+
+		$user = get_userdata( $order->post_author );
+		if ( ! $user ) return false;
+
+		$first_attendee = Conf_Utils::get_first_attendee( $order_id );
+		if ( ! $first_attendee ) return false;
+
+		$six_digit_code = $first_attendee->six_digit_code;
+		$attendee_list_text = Conf_Utils::get_attendee_names( $order_id );
+		$qr_api_url = Conf_Utils::generate_qr_url( $six_digit_code, $first_attendee->name, $first_attendee->phone, 300 );
+
+		$qr_image_path = sys_get_temp_dir() . '/qr_order_' . $order_id . '.png';
+		$qr_image_content = file_get_contents( $qr_api_url );
+		if ( $qr_image_content === false ) return false;
+		file_put_contents( $qr_image_path, $qr_image_content );
+
+		$subject = __( 'Payment Confirmed - Registration Complete', 'conf-manager' );
+		
+		$body = sprintf(
+			'<p>Dear %s,</p>' .
+			'<p>Your payment for Order #%d has been confirmed. Your registration is complete!</p>' .
+			'<p><strong>Check-in Code:</strong> %s</p>' .
+			'<p><strong>Attendees:</strong> %s</p>' .
+			'<p>Please find your QR code attached. Present it at the registration desk on the day of the event.</p>' .
+			'<p>Thank you for your registration!</p>',
+			esc_html( $user->display_name ),
+			$order_id,
+			$six_digit_code,
+			esc_html( $attendee_list_text )
+		);
+
+		$headers = array('Content-Type: text/html; charset=UTF-8');
+		$attachments = array( $qr_image_path );
+
+		$result = wp_mail( $user->user_email, $subject, wpautop( $body ), $headers, $attachments );
+
+		@unlink( $qr_image_path );
+
+		return $result;
 	}
 
 	/**

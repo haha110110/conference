@@ -40,3 +40,48 @@
 
 ## 后续建议
 - 目前已将订单与凭证上传分离，如果用户在 Step 4 刷新了页面导致未上传凭证，可以考虑在“用户中心”或“订单详情页”保留一个补传凭证的入口（当前系统如果在 `templates/order-details.php` 已有补传逻辑则不受影响）。
+
+---
+
+# 重要错误记录 (Critical Bug Record)
+
+## 错误：支付成功后未跳转到正确成功页面
+
+### 问题描述
+- **场景**：银行汇款管理员确认收款后、微信支付成功后，用户登录后点击查看订单详情
+- **问题**：用户看到的是订单详情页（显示支付方式选择界面），而不是正确的成功页面
+- **原因**：`order-details.php` 中的跳转逻辑只检查了 `is_onsite_pending`（现场缴费待付款），没有检查 `is_paid`（已支付状态）
+
+### 修复方案
+在 `templates/order-details.php` 第 29-33 行修改跳转逻辑：
+
+```php
+// 修改前（错误）：
+if ( Conf_Utils::is_onsite_pending( $order_id ) ) {
+    wp_redirect( Conf_Utils::get_success_url( $order_id ) );
+    exit;
+}
+
+// 修改后（正确）：
+if ( Conf_Utils::is_onsite_pending( $order_id ) || Conf_Utils::is_paid( $order_id ) ) {
+    wp_redirect( Conf_Utils::get_success_url( $order_id ) );
+    exit;
+}
+```
+
+### 关键逻辑说明
+| 状态 | 支付方式 | 行为 |
+|------|---------|------|
+| `unpaid` | `onsite` | 跳转成功页面 |
+| `paid` | `bank` | 跳转成功页面 |
+| `paid` | `wechat` | 跳转成功页面 |
+| `pending` | `bank` | 显示订单详情页（银行信息+上传凭证） |
+| `pending` | `wechat` | 显示订单详情页（微信支付按钮） |
+
+### 相关文件
+- `templates/order-details.php` - 跳转逻辑
+- `templates/order-success.php` - 成功页面模板
+- `includes/class-conf-utils.php` - 工具类（is_paid()、is_onsite_pending()）
+
+### 日期
+2026-03-27

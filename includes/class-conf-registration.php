@@ -55,20 +55,14 @@ class Conf_Registration {
 			wp_send_json_error( array( 'message' => __( 'No file uploaded.', 'conf-manager' ) ) );
 		}
 
-		if ( ! function_exists( 'wp_handle_upload' ) ) {
-			require_once ABSPATH . 'wp-admin/includes/file.php';
+		$result = Conf_Utils::handle_bank_receipt_upload( $order_id );
+
+		if ( is_wp_error( $result ) ) {
+			wp_send_json_error( array( 'message' => $result->get_error_message() ) );
 		}
 
-		$uploaded_file = wp_handle_upload( $_FILES['bank_receipt'], array( 'test_form' => false ) );
-
-		if ( isset( $uploaded_file['error'] ) ) {
-			wp_send_json_error( array( 'message' => $uploaded_file['error'] ) );
-		}
-
-		if ( isset( $uploaded_file['url'] ) ) {
-			update_post_meta( $order_id, 'conf_bank_receipt_url', $uploaded_file['url'] );
-			
-			wp_send_json_success( array( 'message' => __( 'Receipt uploaded successfully.', 'conf-manager' ), 'url' => $uploaded_file['url'] ) );
+		if ( $result ) {
+			wp_send_json_success( array( 'message' => __( 'Receipt uploaded successfully.', 'conf-manager' ), 'url' => $result ) );
 		}
 
 		wp_send_json_error( array( 'message' => __( 'Failed to save uploaded file.', 'conf-manager' ) ) );
@@ -98,21 +92,40 @@ class Conf_Registration {
 
 		update_post_meta( $order_id, 'conf_payment_method', $payment_method );
 
-		// Handle bank receipt upload
-		if ( $payment_method === 'bank' && ! empty( $_FILES['bank_receipt']['name'] ) ) {
-			if ( ! function_exists( 'wp_handle_upload' ) ) {
-				require_once ABSPATH . 'wp-admin/includes/file.php';
-			}
-			$uploaded_file = wp_handle_upload( $_FILES['bank_receipt'], array( 'test_form' => false ) );
-			if ( isset( $uploaded_file['url'] ) ) {
-				update_post_meta( $order_id, 'conf_bank_receipt_url', $uploaded_file['url'] );
-			}
+		$response_data = array(
+			'message'      => __( 'Payment method updated successfully!', 'conf-manager' ),
+			'next_action'  => 'reload',
+			'payment_method' => $payment_method,
+		);
+
+		switch ( $payment_method ) {
+			case 'onsite':
+				update_post_meta( $order_id, 'conf_status', 'unpaid' );
+				$response_data['next_action'] = 'redirect_success';
+				$response_data['message'] = __( 'Registration complete!', 'conf-manager' );
+				Conf_Manager::send_email( $order_id, 'received' );
+				break;
+
+			case 'wechat':
+				update_post_meta( $order_id, 'conf_status', 'pending' );
+				$response_data['next_action'] = 'trigger_wechat';
+				$response_data['message'] = __( 'Redirecting to WeChat Pay...', 'conf-manager' );
+				break;
+
+			case 'bank':
+				update_post_meta( $order_id, 'conf_status', 'pending' );
+				$response_data['next_action'] = 'show_bank';
+				$response_data['message'] = __( 'Changed to Bank Transfer. Please transfer and upload receipt.', 'conf-manager' );
+				Conf_Manager::send_email( $order_id, 'received' );
+				break;
 		}
 
-		// Re-send received email
-		Conf_Manager::send_email( $order_id, 'received' );
+		// Handle bank receipt upload
+		if ( $payment_method === 'bank' && ! empty( $_FILES['bank_receipt']['name'] ) ) {
+			Conf_Utils::handle_bank_receipt_upload( $order_id );
+		}
 
-		wp_send_json_success( array( 'message' => __( 'Payment method updated successfully!', 'conf-manager' ) ) );
+		wp_send_json_success( $response_data );
 	}
 
 	/**
@@ -190,6 +203,9 @@ class Conf_Registration {
 			case 'order':
 				include CONF_MANAGER_PATH . 'templates/order-details.php';
 				break;
+			case 'order_success':
+				include CONF_MANAGER_PATH . 'templates/order-success.php';
+				break;
 			case 'dashboard':
 			default:
 				include CONF_MANAGER_PATH . 'templates/dashboard.php';
@@ -260,13 +276,7 @@ class Conf_Registration {
 
 		// Handle bank receipt upload
 		if ( $payment_method === 'bank' && ! empty( $_FILES['bank_receipt']['name'] ) ) {
-			if ( ! function_exists( 'wp_handle_upload' ) ) {
-				require_once ABSPATH . 'wp-admin/includes/file.php';
-			}
-			$uploaded_file = wp_handle_upload( $_FILES['bank_receipt'], array( 'test_form' => false ) );
-			if ( isset( $uploaded_file['url'] ) ) {
-				update_post_meta( $order_id, 'conf_bank_receipt_url', $uploaded_file['url'] );
-			}
+			Conf_Utils::handle_bank_receipt_upload( $order_id );
 		}
 
 		global $wpdb;

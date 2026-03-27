@@ -186,8 +186,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     
                     showStep('step-bank-transfer');
                 } else {
-                    // Show success directly for Onsite
-                    renderSuccessPage(orderId, paymentMethod, sixDigitCode);
+                    // Redirect to success page for Onsite
+                    window.location.href = '?action=order_success&id=' + orderId;
                 }
             } else {
                 showError(data.data.message || 'Registration failed.');
