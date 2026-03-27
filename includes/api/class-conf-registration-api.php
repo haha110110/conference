@@ -37,20 +37,41 @@ class Conf_Registration_API {
 	 * Retrieve ticket types and discount configuration
 	 */
 	public function get_tickets( $request ) {
-		$raw_tickets = get_option( 'conf_tickets_raw', "Standard|1200|Full Access\nVIP|2500|Executive Tier" );
-		$lines = explode( "\n", str_replace( "\r", "", $raw_tickets ) );
-		$tickets = array();
+		// New Dynamic Ticket Tiers
+		$raw_tiers = get_option( 'conf_ticket_tiers', '[]' );
+		$tickets = json_decode( $raw_tiers, true );
 		
-		foreach ( $lines as $line ) {
-			if ( empty( trim( $line ) ) ) continue;
-			$parts = explode( '|', $line );
-			if ( count( $parts ) >= 2 ) {
-				$tickets[] = array(
-					'id'    => sanitize_title( $parts[0] ),
-					'name'  => trim( $parts[0] ),
-					'price' => floatval( $parts[1] ),
-					'desc'  => isset( $parts[2] ) ? trim( $parts[2] ) : '',
-				);
+		if ( ! empty( $tickets ) && is_array( $tickets ) ) {
+			// Map to frontend expected format
+			foreach ( $tickets as &$t ) {
+				if ( isset( $t['description'] ) ) {
+					$t['desc'] = $t['description'];
+				}
+				if ( isset( $t['price'] ) ) {
+					$t['price'] = floatval( $t['price'] );
+				}
+                if ( isset( $t['quota'] ) && $t['quota'] === '' ) {
+                    unset( $t['quota'] );
+                }
+			}
+		}
+
+		if ( empty( $tickets ) || ! is_array( $tickets ) ) {
+			// Fallback to legacy config or default
+			$legacy = get_option( 'conf_tickets_raw', "Standard|1200|Full Access\nVIP|2500|Executive Tier" );
+			$lines = explode( "\n", str_replace( "\r", "", $legacy ) );
+			$tickets = array();
+			foreach ( $lines as $line ) {
+				if ( empty( trim( $line ) ) ) continue;
+				$parts = explode( '|', $line );
+				if ( count( $parts ) >= 2 ) {
+					$tickets[] = array(
+						'id'    => sanitize_title( $parts[0] ),
+						'name'  => trim( $parts[0] ),
+						'price' => floatval( $parts[1] ),
+						'desc'  => isset( $parts[2] ) ? trim( $parts[2] ) : '',
+					);
+				}
 			}
 		}
 
@@ -58,13 +79,41 @@ class Conf_Registration_API {
 		$discount_threshold = intval( get_option( 'conf_discount_threshold', '3' ) );
 		$discount_percentage = intval( get_option( 'conf_discount_percentage', '15' ) );
 
+		// Registration Control
+		$reg_start = get_option( 'conf_reg_start_time', '' );
+		$reg_end = get_option( 'conf_reg_end_time', '' );
+		$now = current_time( 'mysql' ); // Match WP local time
+		$is_registration_open = true;
+
+		if ( ! empty( $reg_start ) && $now < $reg_start ) {
+			$is_registration_open = false;
+		}
+		if ( ! empty( $reg_end ) && $now > $reg_end ) {
+			$is_registration_open = false;
+		}
+
+		// Payment Toggles and Options
+		$payment_toggles = get_option( 'conf_payment_toggles', '{"wechat":true,"bank":true,"onsite":false}' );
+		$payment_options = json_decode( $payment_toggles, true );
+		$bank_info = json_decode( get_option( 'conf_payment_bank_info', '{"bank":"","account":"","name":""}' ), true );
+
+		$event_name = get_option( 'conf_event_name', 'Event Registration' );
+
 		return new WP_REST_Response( array(
+			'event_name' => $event_name,
 			'tickets'  => $tickets,
 			'discount' => array(
 				'enabled'    => $discount_enabled,
 				'threshold'  => $discount_threshold,
 				'percentage' => $discount_percentage,
-			)
+			),
+			'control' => array(
+				'is_open' => $is_registration_open,
+				'start'   => $reg_start,
+				'end'     => $reg_end,
+			),
+			'payment_options' => $payment_options,
+			'bank_info' => $bank_info,
 		), 200 );
 	}
 
@@ -75,6 +124,24 @@ class Conf_Registration_API {
 		$params = $request->get_json_params();
 		if ( empty( $params['attendees'] ) || ! is_array( $params['attendees'] ) || empty( $params['ticket_id'] ) || empty( $params['payment_method'] ) ) {
 			return new WP_Error( 'invalid_data', 'Missing required fields', array( 'status' => 400 ) );
+		}
+
+		// Check registration timing
+		$reg_start = get_option( 'conf_reg_start_time', '' );
+		$reg_end = get_option( 'conf_reg_end_time', '' );
+		$now = current_time( 'mysql' );
+		if ( ! empty( $reg_start ) && $now < $reg_start ) {
+			return new WP_Error( 'reg_not_started', 'Registration has not started yet.', array( 'status' => 403 ) );
+		}
+		if ( ! empty( $reg_end ) && $now > $reg_end ) {
+			return new WP_Error( 'reg_ended', 'Registration has ended.', array( 'status' => 403 ) );
+		}
+
+		// Check Payment method allowed
+		$payment_toggles = json_decode( get_option( 'conf_payment_toggles', '{"wechat":true,"bank":true,"onsite":false}' ), true );
+		$req_method = sanitize_text_field( $params['payment_method'] );
+		if ( empty( $payment_toggles[ $req_method ] ) ) {
+			return new WP_Error( 'payment_not_allowed', 'Selected payment method is currently disabled.', array( 'status' => 403 ) );
 		}
 
 		// Calculate Price on Backend to prevent tampering

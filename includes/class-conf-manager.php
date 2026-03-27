@@ -43,6 +43,9 @@ class Conf_Manager {
 
 		require_once CONF_MANAGER_PATH . 'includes/api/class-conf-registration-api.php';
 		new Conf_Registration_API();
+
+		require_once CONF_MANAGER_PATH . 'includes/api/class-conf-admin-api.php';
+		new Conf_Admin_API();
 	}
 
 	/**
@@ -92,7 +95,7 @@ class Conf_Manager {
 			'show_ui'     => true,
 			'supports'    => array( 'title', 'custom-fields' ),
 			'menu_icon'   => 'dashicons-cart',
-			'show_in_menu' => 'conf-manager',
+			'show_in_menu' => false,
 		) );
 	}
 

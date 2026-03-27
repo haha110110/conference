@@ -22,6 +22,17 @@
 				if (!res.ok) throw new Error('Failed to load configuration');
 				this.state.ticketsData = await res.json();
 				
+				if (this.state.ticketsData.control && !this.state.ticketsData.control.is_open) {
+					this.mountPoint.innerHTML = `<div class="p-8 text-center text-gray-500 min-h-screen flex flex-col justify-center items-center"><span class="material-symbols-outlined text-5xl mb-4">event_busy</span><h2 class="text-2xl font-bold text-gray-900 mb-2">Registration Closed</h2><p>Online registration for this event is currently unavailable.</p></div>`;
+					return;
+				}
+
+				// dynamic fallback payment selection
+				const pOptions = this.state.ticketsData.payment_options || {};
+				if (pOptions.wechat) this.state.paymentMethod = 'wechat';
+				else if (pOptions.bank) this.state.paymentMethod = 'bank';
+				else if (pOptions.onsite) this.state.paymentMethod = 'onsite';
+
 				// set default ticket id
 				if (this.state.ticketsData.tickets.length > 0) {
 					this.state.ticketId = this.state.ticketsData.tickets[0].id;
@@ -139,7 +150,7 @@
 			return `
 				<header class="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-sm border-b border-gray-100 flex items-center justify-between px-6 py-4">
 					<div class="flex items-center gap-4">
-						<h1 class="font-bold tracking-tight text-gray-900 text-lg">Event Registration</h1>
+						<h1 class="font-bold tracking-tight text-gray-900 text-lg">${this.state.ticketsData.event_name || 'Event Registration'}</h1>
 					</div>
 				</header>
 				<main class="pt-24 px-6 max-w-2xl mx-auto pb-32">
@@ -207,7 +218,7 @@
 						<button class="action-prev active:scale-95 duration-200 text-blue-600 flex items-center justify-center">
 							<span class="material-symbols-outlined">arrow_back</span>
 						</button>
-						<h1 class="font-bold tracking-tight text-gray-900 text-lg">Event Registration</h1>
+						<h1 class="font-bold tracking-tight text-gray-900 text-lg">${this.state.ticketsData.event_name || 'Event Registration'}</h1>
 					</div>
 				</header>
 				<main class="pt-24 px-6 max-w-2xl mx-auto pb-32">
@@ -324,6 +335,7 @@
 							<span class="material-symbols-outlined text-blue-600">payments</span> 支付方式 Payment Method
 						</h2>
 						<div class="space-y-3">
+							${this.state.ticketsData.payment_options.wechat ? `
 							<label class="block relative cursor-pointer group">
 								<input type="radio" name="payment_method" value="wechat" class="sr-only payment-radio" ${this.state.paymentMethod === 'wechat' ? 'checked' : ''}>
 								<div class="p-4 rounded-xl transition-all ${wechatChecked}">
@@ -340,8 +352,9 @@
 										</div>
 									</div>
 								</div>
-							</label>
+							</label>` : ''}
 
+							${this.state.ticketsData.payment_options.bank ? `
 							<label class="block relative cursor-pointer group">
 								<input type="radio" name="payment_method" value="bank" class="sr-only payment-radio" ${this.state.paymentMethod === 'bank' ? 'checked' : ''}>
 								<div class="p-4 rounded-xl transition-all ${bankChecked}">
@@ -358,8 +371,9 @@
 										</div>
 									</div>
 								</div>
-							</label>
+							</label>` : ''}
 
+							${this.state.ticketsData.payment_options.onsite ? `
 							<label class="block relative cursor-pointer group">
 								<input type="radio" name="payment_method" value="onsite" class="sr-only payment-radio" ${this.state.paymentMethod === 'onsite' ? 'checked' : ''}>
 								<div class="p-4 rounded-xl transition-all ${onsiteChecked}">
@@ -376,7 +390,7 @@
 										</div>
 									</div>
 								</div>
-							</label>
+							</label>` : ''}
 						</div>
 					</section>
 				</main>
@@ -431,9 +445,9 @@
 					<div class="bg-gray-50 rounded-xl p-6 border border-gray-100 mb-8">
 						<h3 class="font-bold text-gray-900 mb-4">Bank Account Info 银行账户信息</h3>
 						<div class="space-y-3 text-sm">
-							<div><span class="text-gray-500 block text-xs">Account Name 账户名称</span> <span class="font-bold text-gray-900 text-lg">Official Conference Account</span></div>
-							<div><span class="text-gray-500 block text-xs mt-3">Bank 开户银行</span> <span class="font-medium text-gray-900">Example Bank</span></div>
-							<div><span class="text-gray-500 block text-xs mt-3">Account No. 账号</span> <span class="font-mono font-bold text-gray-900 text-lg tracking-wider">1234-5678-9012</span></div>
+							<div><span class="text-gray-500 block text-xs">Account Name 账户名称</span> <span class="font-bold text-gray-900 text-lg">${this.state.ticketsData.bank_info?.name || '-'}</span></div>
+							<div><span class="text-gray-500 block text-xs mt-3">Bank 开户银行</span> <span class="font-medium text-gray-900">${this.state.ticketsData.bank_info?.bank || '-'}</span></div>
+							<div><span class="text-gray-500 block text-xs mt-3">Account No. 账号</span> <span class="font-mono font-bold text-gray-900 text-lg tracking-wider">${this.state.ticketsData.bank_info?.account || '-'}</span></div>
 							<div class="mt-4 p-4 bg-blue-50 text-blue-800 rounded-lg text-sm flex items-start gap-2 border border-blue-100">
 								<span class="material-symbols-outlined text-blue-600 text-xl">info</span>
 								<div>* Please include your Registration No. <span class="font-bold">${order.reg_no}</span> in the transfer notes/remarks.</div>
@@ -467,7 +481,7 @@
 
 			return `
 				<header class="fixed top-0 w-full z-50 bg-white/90 backdrop-blur-sm flex justify-center py-4">
-					<span class="text-xl font-bold tracking-tighter text-blue-600">Event Registration</span>
+					<span class="text-xl font-bold tracking-tighter text-blue-600">${this.state.ticketsData.event_name || 'Event Registration'}</span>
 				</header>
 				<main class="pt-24 pb-32 px-6 max-w-md mx-auto min-h-screen flex flex-col items-center">
 					<div class="flex flex-col items-center text-center mb-12">
